@@ -70,5 +70,13 @@ app.post("/ask", async (req, res) => {
   }
 });
 
+// Debug route to verify environment setup
+app.get("/debug", (req, res) => {
+  res.json({
+    has_key: !!process.env.MODEL_API_KEY,
+    model: process.env.MODEL_NAME || "not set",
+    env_loaded: !!process.env.MODEL_API_URL,
+  });
+});
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Ask Pastor Daniel on ${PORT}`));
