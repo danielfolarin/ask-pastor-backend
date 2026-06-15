@@ -1,0 +1,110 @@
+[
+  {
+    "id": "a-revelation-from-genesis",
+    "title": "A Revelation from Genesis",
+    "source_file": "/Users/macuser/Downloads/A Revelation from Genesis  .pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/a-revelation-from-genesis.json",
+    "page_count": 171,
+    "character_count": 330498
+  },
+  {
+    "id": "soteria-and-rest-2",
+    "title": "SOTERIA AND REST (2)",
+    "source_file": "/Users/macuser/Downloads/SOTERIA AND REST (2).pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/soteria-and-rest-2.json",
+    "page_count": 236,
+    "character_count": 334351
+  },
+  {
+    "id": "soteria-the-unbreakable-gift-of-sonship-and-redemption",
+    "title": "Soteria_ The Unbreakable Gift of Sonship and Redemption",
+    "source_file": "/Users/macuser/Downloads/Soteria_ The Unbreakable Gift of Sonship and Redemption.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/soteria-the-unbreakable-gift-of-sonship-and-redemption.json",
+    "page_count": 168,
+    "character_count": 249102
+  },
+  {
+    "id": "statement-of-faith",
+    "title": "Statement of Faith",
+    "source_file": "/Users/macuser/Downloads/Statement of Faith.pdf",
+    "source_role": "controlling",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/statement-of-faith.json",
+    "page_count": 3,
+    "character_count": 4831
+  },
+  {
+    "id": "the-fear-of-god-2nd-edition-docx",
+    "title": "THE FEAR OF GOD - 2nd edition.docx",
+    "source_file": "/Users/macuser/Downloads/THE FEAR OF GOD - 2nd edition.docx.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/the-fear-of-god-2nd-edition-docx.json",
+    "page_count": 209,
+    "character_count": 264612
+  },
+  {
+    "id": "soteria-victorious-eschatology",
+    "title": "Soteria & Victorious Eschatology_",
+    "source_file": "/Users/macuser/Downloads/Soteria & Victorious Eschatology_ .pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/soteria-victorious-eschatology.json",
+    "page_count": 153,
+    "character_count": 295958
+  },
+  {
+    "id": "logos-believers-class-curriculum",
+    "title": "Logos Believers\u2019 Class Curriculum",
+    "source_file": "/Users/macuser/Downloads/Logos Believers\u2019 Class Curriculum.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/logos-believers-class-curriculum.json",
+    "page_count": 236,
+    "character_count": 324258
+  },
+  {
+    "id": "why-i-am-a-christian",
+    "title": "WHY I AM A CHRISTIAN",
+    "source_file": "/Users/macuser/Downloads/WHY I AM A CHRISTIAN.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/why-i-am-a-christian.json",
+    "page_count": 158,
+    "character_count": 302328
+  },
+  {
+    "id": "emotional-and-mental-preparedness",
+    "title": "EMOTIONAL AND MENTAL PREPAREDNESS",
+    "source_file": "/Users/macuser/Downloads/EMOTIONAL AND MENTAL PREPAREDNESS.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/emotional-and-mental-preparedness.json",
+    "page_count": 286,
+    "character_count": 518140
+  },
+  {
+    "id": "lostworldofgenesissamplechapter",
+    "title": "lostworldofgenesissamplechapter",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/lostworldofgenesissamplechapter.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/lostworldofgenesissamplechapter.json",
+    "page_count": 10,
+    "character_count": 15353
+  },
+  {
+    "id": "behr-promise-of-image",
+    "title": "Behr-Promise_of_Image",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/Behr-Promise_of_Image.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/behr-promise-of-image.json",
+    "page_count": 13,
+    "character_count": 46932
+  },
+  {
+    "id": "being-and-becoming-human",
+    "title": "being-and-becoming-human",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/being-and-becoming-human.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/being-and-becoming-human.json",
+    "page_count": 97,
+    "character_count": 261011
+  }
+]

@@ -1,40 +1,28 @@
-# Ask Pastor Daniel, Backend
+# Ask Pastor Daniel AI
 
-A tiny Node server for your Blogger widget.
+A public, retrieval-grounded theological assistant based on the documented
+teachings and convictions of Dr. Daniel Folarin.
 
-## Quick start
+## Features
 
-1. Install Node 18 or newer.
-2. Run:
+- Public responsive chat interface
+- Retrieval across Pastor Daniel's source library
+- Source titles and page citations
+- Separation of primary teaching from external reference works
+- Crisis and abuse safety responses
+- Rate limiting, input limits, and validated conversation history
+
+## Local Start
 
 ```bash
 npm install
+cp .env.example .env
 npm start
 ```
 
-This starts on http://localhost:8080
+Open `http://localhost:8080`.
 
-## Configure CORS
+## Deploy on Render
 
-Set the environment variable so your site can call it:
-
-```
-ALLOWED_ORIGINS=https://www.thecuriousseekers.com, https://thecuriousseekers.com
-```
-
-## Connect a model
-
-By default, the server replies in "demo mode". To enable real AI responses, set these three env vars:
-
-- `MODEL_API_URL`  The chat completions endpoint for your provider.
-- `MODEL_API_KEY`  Your API key.
-- `MODEL_NAME`     The model id.
-
-Restart after setting them.
-
-## Deploy notes
-
-Works well on Render, Railway, Fly, or any Node host.
-- Build command: `npm install`
-- Start command: `npm start`
-- Env vars: `ALLOWED_ORIGINS`, and later the three model vars.
+The included `render.yaml` creates the web service. Set `MODEL_API_KEY` as a
+secret environment variable in Render. Never commit the API key.

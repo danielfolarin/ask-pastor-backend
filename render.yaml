@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ask-pastor-daniel-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MODEL_API_URL
+        value: https://api.openai.com/v1/chat/completions
+      - key: MODEL_NAME
+        value: gpt-4o-mini
+      - key: MODEL_API_KEY
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: 20

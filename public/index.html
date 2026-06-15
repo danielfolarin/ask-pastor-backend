@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ask biblical and theological questions using the documented teachings of Dr. Daniel Folarin.">
+  <title>Ask Pastor Daniel AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="glow glow-one"></div>
+  <div class="glow glow-two"></div>
+  <header>
+    <a class="brand" href="/">
+      <span class="brand-mark">PD</span>
+      <span><strong>Ask Pastor Daniel</strong><small>AI theological assistant</small></span>
+    </a>
+    <span class="status"><i></i> Grounded in published teachings</span>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Faith seeking understanding</p>
+      <h1>Bring your questions.<br><em>Let us look to Christ.</em></h1>
+      <p>Explore Scripture, theology, Christian living, and difficult questions through the documented teachings and convictions of Dr. Daniel Folarin.</p>
+      <div class="suggestions">
+        <button>What does union with Christ mean?</button>
+        <button>Can a Christian lose salvation?</button>
+        <button>How should Christians understand the fear of God?</button>
+      </div>
+    </section>
+
+    <section class="chat-shell">
+      <div id="messages" class="messages" aria-live="polite">
+        <article class="message assistant">
+          <div class="avatar">PD</div>
+          <div class="bubble">
+            <p>Welcome. Ask a question about Scripture, theology, faith, or Christian living. I will answer from Pastor Daniel's documented teachings and show the sources used.</p>
+          </div>
+        </article>
+      </div>
+      <form id="ask-form">
+        <textarea id="question" rows="1" maxlength="3000" placeholder="Ask your question..." required></textarea>
+        <button id="send" type="submit" aria-label="Send question">Ask <span>→</span></button>
+      </form>
+      <p class="disclaimer">This is an AI assistant, not Pastor Daniel personally. For emergencies or personal crises, contact qualified local help.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Christ-centered. Scripture-grounded. Pastorally careful.</p>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>
