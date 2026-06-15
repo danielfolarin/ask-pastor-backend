@@ -64,7 +64,7 @@ h2 { margin: 12px 0 15px; font-size: clamp(38px, 5vw, 64px); line-height: 1; }
 .welcome-message { max-width: 610px; color: var(--muted); font-size: 14px; line-height: 1.7; }
 .welcome-message p { margin: 0 0 10px; }
 .welcome-message strong { color: var(--ink); }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 27px; }
+.hero-actions { display: flex; margin-top: 18px; }
 .button {
   display: inline-flex;
   align-items: center;
@@ -78,8 +78,6 @@ h2 { margin: 12px 0 15px; font-size: clamp(38px, 5vw, 64px); line-height: 1; }
 }
 .button.primary { color: #fff; background: var(--green); }
 .button.primary:hover { background: var(--green-dark); }
-.button.secondary { color: var(--green); border: 1px solid var(--line); background: rgba(255,255,255,.6); }
-.button.secondary:hover { background: #fff; }
 .portrait-wrap {
   position: relative;
   height: 630px;
@@ -215,12 +213,12 @@ footer { text-align: center; color: var(--muted); font-size: 11px; padding: 0 20
   .status { display: none; }
   header { padding: 18px 20px; }
   main { padding: 0 14px; }
-  .hero { gap: 24px; padding: 24px 6px 60px; }
+  .hero { gap: 16px; padding: 24px 6px 52px; }
   h1 { font-size: 58px; }
   .welcome-message { font-size: 13px; }
-  .hero-actions { display: grid; }
+  .hero-actions { margin-top: 14px; }
   .button { width: 100%; }
-  .portrait-wrap { height: 420px; border-radius: 42% 42% 22px 22px; }
+  .portrait-wrap { height: 410px; margin-top: -2px; border-radius: 42% 42% 22px 22px; }
   .portrait { width: 142%; margin-bottom: -1%; }
   .portrait-halo { width: 270px; height: 270px; top: 50px; }
   .portrait-caption { right: 12px; bottom: 12px; }
