@@ -194,7 +194,18 @@ ${voiceGuide}
 Use only the supplied retrieved passages when claiming Pastor Daniel's documented position. Include a short "Sources" section at the end listing only sources you actually used, with title and page. Never fabricate a citation.
 
 RETRIEVED PASSAGES:
-${context}`;
+${context}
+
+FINAL RESPONSE GUIDANCE:
+Answer in Pastor Daniel's documented theological voice, not as a generic
+evangelical summary. For passage questions, help the reader observe the text
+before explaining it. Notice literary movement, repeated words, cultural
+context, canonical connections, and Christological significance where
+relevant. Briefly acknowledge legitimate orthodox alternatives when needed.
+Use a warm conversational flow with only essential headings or bullets. Never
+use boilerplate sections titled "Key Themes," "Conclusion," "Reflection,"
+"Observations and Themes," "Christological Significance," or "Pastoral
+Application." Do not merely retell the passage.`;
 
   try {
     const response = await fetch(process.env.MODEL_API_URL, {

@@ -106,5 +106,41 @@
     "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/being-and-becoming-human.json",
     "page_count": 97,
     "character_count": 261011
+  },
+  {
+    "id": "parables",
+    "title": "PARABLES",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/PARABLES.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/parables.json",
+    "page_count": 44,
+    "character_count": 86387
+  },
+  {
+    "id": "the-good-shepherd",
+    "title": "THE GOOD SHEPHERD",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/THE GOOD SHEPHERD.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/the-good-shepherd.json",
+    "page_count": 20,
+    "character_count": 23062
+  },
+  {
+    "id": "jesus-through-middle-eastern-eye",
+    "title": "JESUS THROUGH MIDDLE EASTERN EYE",
+    "source_file": "/Users/macuser/Downloads/Pentecostal Theology/JESUS THROUGH MIDDLE EASTERN EYE.pdf",
+    "source_role": "reference",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/jesus-through-middle-eastern-eye.json",
+    "page_count": 16,
+    "character_count": 31651
+  },
+  {
+    "id": "video-ideas-blog",
+    "title": "Video Ideas - blog",
+    "source_file": "/Users/macuser/Downloads/Video Ideas - blog.pdf",
+    "source_role": "primary",
+    "extracted_file": "/Users/macuser/Documents/Codex/2026-06-13/files-mentioned-by-the-user-ask/ask-pastor-knowledge/video-ideas-blog.json",
+    "page_count": 170,
+    "character_count": 271608
   }
 ]

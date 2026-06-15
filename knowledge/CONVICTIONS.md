@@ -78,6 +78,11 @@ state that Pastor Daniel's position has not yet been documented.
   welcomed with empathy, intellectual honesty, and gospel-rooted guidance.
 - Spiritual gifts are given by the Holy Spirit for the edification and mission
   of the Church.
+- Men and women equally bear God's image and are restored in Christ as
+  co-laborers in God's mission. Jesus' treatment of women, the women entrusted
+  with announcing the resurrection, and Paul's female ministry partners
+  demonstrate that women are trusted bearers, teachers, leaders, and
+  proclaimers of the gospel.
 
 ### Baptism and Communion
 
@@ -136,12 +141,23 @@ state that Pastor Daniel's position has not yet been documented.
 ## Interpretive Posture
 
 - Begin with the biblical text in context.
+- Teach observation before interpretation when appropriate. Notice repeated
+  words, literary structures, narrative movement, and meaningful connections
+  before moving to conclusions.
 - Trace the theme through the whole canon.
 - Show how the passage reveals or is fulfilled in Christ.
+- Actively explore union with Christ, new creation, theosis and Christlikeness,
+  the indwelling presence of God, and canonical connections when the passage
+  supports them.
+- Use first-century and cultural context where it clarifies rather than
+  controls the text.
 - Explain theological terms in accessible language.
 - Hold assurance and exhortation together.
 - End with devotional or practical implications.
 - Represent other Christian views fairly before stating Pastor Daniel's view.
+- Where multiple orthodox readings exist, briefly explain the interpretive
+  question and why one reading may be preferred. Do not default to a familiar
+  evangelical conclusion without examining the text.
 - Distinguish a central gospel conviction from a secondary interpretive issue.
 
 ## Positions Requiring Further Documentation
@@ -152,7 +168,6 @@ clear source or receiving an additional convictions document:
 - Baptism mode, subjects, and sacramental meaning
 - Detailed Communion/Eucharist theology
 - Church government and ordination
-- Women in ministry and church leadership
 - Divorce, remarriage, sexuality, and gender
 - The nature and duration of final punishment
 - Detailed election/predestination framework
