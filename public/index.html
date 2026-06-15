@@ -22,26 +22,44 @@
   </header>
 
   <main>
-    <section class="intro">
-      <p class="eyebrow">Faith seeking understanding</p>
-      <h1>Bring your questions.<br><em>Let us look to Christ.</em></h1>
-      <p>Explore Scripture, theology, Christian living, and difficult questions through the documented teachings and convictions of Dr. Daniel Folarin.</p>
-      <div class="suggestions">
-        <button>What does union with Christ mean?</button>
-        <button>Can a Christian lose salvation?</button>
-        <button>How should Christians understand the fear of God?</button>
-      </div>
-      <aside class="support-card">
-        <span class="support-icon">+</span>
-        <div>
-          <strong>Help keep Ask Pastor Daniel AI available</strong>
-          <p>This assistant is free to use. Optional gifts help cover AI usage costs and support Great Haven Ministries.</p>
-          <a href="https://greathaven.org/donate" target="_blank" rel="noopener noreferrer">Support this ministry <span>→</span></a>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Welcome to Ask Pastor Daniel AI</p>
+        <h1>Ask Pastor<br><em>Daniel AI</em></h1>
+        <p class="subheadline">Your AI Theological Assistant</p>
+        <div class="welcome-message">
+          <p>I’m Pastor Daniel Folarin, pastor, teacher, author, and founder of Great Haven Assembly.</p>
+          <p>I created this platform to help people grow in Christ, understand Scripture more deeply, and navigate life’s questions through a biblical and Christ-centered lens.</p>
+          <p>Whether you’re exploring the Christian faith, studying the Bible, wrestling with a theological question, or looking for practical spiritual guidance, I pray this resource serves you well.</p>
+          <p><strong>Ask a question and let’s search the Scriptures together.</strong></p>
         </div>
-      </aside>
+        <div class="hero-actions">
+          <a class="button primary" href="#ask">Start Asking Questions <span>↓</span></a>
+          <a class="button secondary" href="https://greathaven.org" target="_blank" rel="noopener noreferrer">Learn More About Pastor Daniel</a>
+        </div>
+      </div>
+      <div class="portrait-wrap">
+        <div class="portrait-halo"></div>
+        <img src="/pastor-daniel.png" alt="Pastor Daniel Folarin" class="portrait">
+        <div class="portrait-caption">
+          <strong>Dr. Daniel Folarin</strong>
+          <span>Pastor · Teacher · Author</span>
+        </div>
+      </div>
     </section>
 
-    <section class="chat-shell">
+    <section id="ask" class="ask-section">
+      <div class="section-heading">
+        <p class="eyebrow">Faith seeking understanding</p>
+        <h2>Bring your questions.<br><em>Let us look to Christ.</em></h2>
+        <p>Explore Scripture, theology, Christian living, and difficult questions through Pastor Daniel’s documented teachings and convictions.</p>
+        <div class="suggestions">
+          <button>What does union with Christ mean?</button>
+          <button>Can a Christian lose salvation?</button>
+          <button>How should Christians understand the fear of God?</button>
+        </div>
+      </div>
+      <div class="chat-shell">
       <div id="messages" class="messages" aria-live="polite">
         <article class="message assistant">
           <div class="avatar">PD</div>
@@ -60,12 +78,53 @@
       </form>
       <p id="record-status" class="record-status" aria-live="polite"></p>
       <p class="disclaimer">This is an AI assistant, not Pastor Daniel personally. For emergencies or personal crises, contact qualified local help.</p>
+      </div>
+    </section>
+
+    <section class="connect-section">
+      <div class="connect-intro">
+        <p class="eyebrow">You are welcome here</p>
+        <h2>Connect with the ministry</h2>
+        <p>Prayer, testimony, encouragement, and partnership all matter. Choose the way you would like to connect.</p>
+      </div>
+      <div class="connect-grid">
+        <article class="connect-card">
+          <span class="card-icon" aria-hidden="true">✦</span>
+          <h3>Request Prayer</h3>
+          <p>If you would like prayer, encouragement, or pastoral support, I’d be honored to pray with you.</p>
+          <a href="mailto:danielfolarin@greathaven.org?subject=Prayer%20Request">Send Prayer Request <span>→</span></a>
+        </article>
+        <article class="connect-card">
+          <span class="card-icon" aria-hidden="true">♡</span>
+          <h3>Share Your Story</h3>
+          <p>Has Ask Pastor Daniel AI encouraged, helped, or blessed you? I’d love to hear how.</p>
+          <a href="mailto:danielfolarin@greathaven.org?subject=Testimony">Share Testimony <span>→</span></a>
+        </article>
+        <article class="connect-card">
+          <span class="card-icon" aria-hidden="true">✉</span>
+          <h3>Join the Newsletter</h3>
+          <p>Receive biblical insights, ministry updates, articles, and resources.</p>
+          <a href="mailto:danielfolarin@greathaven.org?subject=Newsletter%20Signup">Join Newsletter <span>→</span></a>
+        </article>
+        <article class="connect-card">
+          <span class="card-icon" aria-hidden="true">◎</span>
+          <h3>Partner With This Ministry</h3>
+          <p>If you would like to explore supporting and partnering with this ministry, I would love to connect with you personally.</p>
+          <a href="mailto:danielfolarin@greathaven.org?subject=Partnership%20Inquiry">Contact Pastor Daniel <span>→</span></a>
+        </article>
+        <article class="connect-card share-card">
+          <span class="card-icon" aria-hidden="true">↗</span>
+          <h3>Share This Resource</h3>
+          <p>Help others discover Ask Pastor Daniel AI by sharing it with friends, family, church members, and ministry leaders.</p>
+          <button id="share-site" type="button">Share <span>→</span></button>
+          <span id="share-status" class="share-status" aria-live="polite"></span>
+        </article>
+      </div>
     </section>
   </main>
 
   <footer>
     <p>Christ-centered. Scripture-grounded. Pastorally careful.</p>
-    <a href="https://greathaven.org/donate" target="_blank" rel="noopener noreferrer">Support this free resource</a>
   </footer>
   <script src="/app.js"></script>
 </body>

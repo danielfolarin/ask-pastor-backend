@@ -5,6 +5,8 @@ const record = document.querySelector("#record");
 const recordLabel = record.querySelector(".record-label");
 const recordStatus = document.querySelector("#record-status");
 const messages = document.querySelector("#messages");
+const shareSite = document.querySelector("#share-site");
+const shareStatus = document.querySelector("#share-status");
 const history = [];
 let mediaRecorder;
 let mediaStream;
@@ -161,4 +163,24 @@ document.querySelectorAll(".suggestions button").forEach((button) => {
     input.value = button.textContent;
     form.requestSubmit();
   });
+});
+
+shareSite.addEventListener("click", async () => {
+  const shareData = {
+    title: "Ask Pastor Daniel AI",
+    text: "Explore Scripture and theology with Ask Pastor Daniel AI.",
+    url: window.location.href
+  };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+    shareStatus.textContent = "Thank you for sharing Ask Pastor Daniel AI.";
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      shareStatus.textContent = "The link could not be shared. Please copy it from your browser.";
+    }
+  }
 });
