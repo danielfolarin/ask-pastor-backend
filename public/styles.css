@@ -121,8 +121,50 @@ h1 em { color: var(--green); font-weight: 400; }
 .typing span:nth-child(2) { animation-delay: .16s; }.typing span:nth-child(3) { animation-delay: .32s; }
 form { margin: 0 20px; display: flex; gap: 10px; padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 30px rgba(38,52,43,.08); }
 textarea { flex: 1; border: 0; outline: 0; resize: none; padding: 10px 8px; font: inherit; color: var(--ink); background: transparent; max-height: 130px; }
-#send { border: 0; border-radius: 12px; background: var(--green); color: #fff; padding: 0 18px; font: inherit; font-weight: 600; cursor: pointer; }
+#record, #send { border: 0; border-radius: 12px; font: inherit; font-weight: 600; cursor: pointer; }
+#send { background: var(--green); color: #fff; padding: 0 18px; }
 #send:disabled { opacity: .55; cursor: wait; }
+.record-status { min-height: 16px; margin: 7px 28px 0; color: var(--muted); font-size: 10px; text-align: right; }
+#record {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: stretch;
+  padding: 0 11px;
+  color: var(--green);
+  background: rgba(29, 91, 66, .08);
+}
+#record:hover { background: rgba(29, 91, 66, .13); }
+#record:disabled { opacity: .55; cursor: wait; }
+#record.recording { color: #9c2f2f; background: rgba(156, 47, 47, .1); }
+.mic-icon {
+  position: relative;
+  display: block;
+  width: 10px;
+  height: 14px;
+  border: 1.8px solid currentColor;
+  border-radius: 7px;
+}
+.mic-icon::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 9px;
+  left: -4.8px;
+  bottom: -5px;
+  border: 1.8px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+}
+.mic-icon::after {
+  content: "";
+  position: absolute;
+  width: 1.8px;
+  height: 4px;
+  left: 2.3px;
+  bottom: -9px;
+  background: currentColor;
+}
 .disclaimer { color: #8a938d; text-align: center; font-size: 10px; margin: 12px 20px 16px; line-height: 1.5; }
 footer { text-align: center; color: var(--muted); font-size: 11px; padding: 0 20px 28px; letter-spacing: .07em; text-transform: uppercase; }
 footer p { margin: 0 0 8px; }
@@ -137,4 +179,6 @@ footer a { letter-spacing: .02em; text-transform: none; }
   .chat-shell { min-height: 650px; border-radius: 22px; }
   .messages { padding: 18px; max-height: 560px; }
   header { padding: 18px 20px; }
+  .record-label { display: none; }
+  #record { padding: 0 14px; }
 }

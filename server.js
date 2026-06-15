@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import fetch from "node-fetch";
+import fetch, { Blob, FormData } from "node-fetch";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,7 +32,7 @@ const rateLimits = new Map();
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = Number(process.env.RATE_LIMIT_MAX || 20);
 
-app.use("/ask", (req, res, next) => {
+app.use(["/ask", "/transcribe"], (req, res, next) => {
   const now = Date.now();
   const key = req.ip || "unknown";
   const current = rateLimits.get(key);
@@ -125,6 +125,43 @@ function sourceList(retrieved) {
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", sources: chunks.length, model_configured: Boolean(process.env.MODEL_API_KEY) });
+});
+
+app.post("/transcribe", express.raw({ type: ["audio/*", "application/octet-stream"], limit: "15mb" }), async (req, res) => {
+  if (!process.env.MODEL_API_KEY) {
+    return res.status(503).json({ error: "Voice transcription has not been configured yet." });
+  }
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    return res.status(400).json({ error: "No audio recording was received." });
+  }
+
+  const contentType = req.headers["content-type"]?.split(";")[0] || "audio/webm";
+  const extension = contentType.includes("mp4") ? "m4a" : contentType.includes("ogg") ? "ogg" : "webm";
+  const form = new FormData();
+  form.append("file", new Blob([req.body], { type: contentType }), `question.${extension}`);
+  form.append("model", process.env.TRANSCRIPTION_MODEL || "whisper-1");
+
+  try {
+    const response = await fetch(process.env.TRANSCRIPTION_API_URL || "https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.MODEL_API_KEY}` },
+      body: form
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Transcription provider error", response.status, data?.error?.message || data);
+      if (response.status === 429) {
+        return res.status(503).json({ error: "Voice transcription needs active model credits." });
+      }
+      return res.status(502).json({ error: "The recording could not be transcribed. Please try again." });
+    }
+    const text = data?.text?.trim();
+    if (!text) return res.status(502).json({ error: "No speech was detected in the recording." });
+    res.json({ text });
+  } catch (error) {
+    console.error(error);
+    res.status(502).json({ error: "Voice transcription is temporarily unavailable." });
+  }
 });
 
 app.post("/ask", async (req, res) => {

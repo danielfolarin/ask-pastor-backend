@@ -52,8 +52,13 @@
       </div>
       <form id="ask-form">
         <textarea id="question" rows="1" maxlength="3000" placeholder="Ask your question..." required></textarea>
+        <button id="record" type="button" aria-label="Record question" title="Record question">
+          <span class="mic-icon" aria-hidden="true"></span>
+          <span class="record-label">Record</span>
+        </button>
         <button id="send" type="submit" aria-label="Send question">Ask <span>→</span></button>
       </form>
+      <p id="record-status" class="record-status" aria-live="polite"></p>
       <p class="disclaimer">This is an AI assistant, not Pastor Daniel personally. For emergencies or personal crises, contact qualified local help.</p>
     </section>
   </main>

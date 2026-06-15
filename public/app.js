@@ -1,8 +1,14 @@
 const form = document.querySelector("#ask-form");
 const input = document.querySelector("#question");
 const send = document.querySelector("#send");
+const record = document.querySelector("#record");
+const recordLabel = record.querySelector(".record-label");
+const recordStatus = document.querySelector("#record-status");
 const messages = document.querySelector("#messages");
 const history = [];
+let mediaRecorder;
+let mediaStream;
+let audioChunks = [];
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
@@ -37,6 +43,79 @@ function addTyping() {
   messages.append(article);
   messages.scrollTop = messages.scrollHeight;
 }
+
+function setRecordState(state, message = "") {
+  record.dataset.state = state;
+  record.classList.toggle("recording", state === "recording");
+  record.disabled = state === "transcribing";
+  recordLabel.textContent = state === "recording" ? "Stop" : state === "transcribing" ? "Working" : "Record";
+  record.setAttribute("aria-label", state === "recording" ? "Stop recording" : "Record question");
+  recordStatus.textContent = message;
+}
+
+function stopStream() {
+  mediaStream?.getTracks().forEach((track) => track.stop());
+  mediaStream = null;
+}
+
+async function transcribe(audioBlob) {
+  setRecordState("transcribing", "Transcribing…");
+  try {
+    const response = await fetch("/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": audioBlob.type || "audio/webm" },
+      body: audioBlob
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "The recording could not be transcribed.");
+    input.value = data.text;
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+    setRecordState("idle", "Transcription ready. You can edit it before sending.");
+  } catch (error) {
+    setRecordState("idle", error.message || "The recording could not be transcribed.");
+  }
+}
+
+async function startRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    setRecordState("idle", "Voice recording is not supported by this browser.");
+    return;
+  }
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    const preferredType = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"]
+      .find((type) => MediaRecorder.isTypeSupported(type));
+    mediaRecorder = preferredType
+      ? new MediaRecorder(mediaStream, { mimeType: preferredType })
+      : new MediaRecorder(mediaStream);
+    mediaRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size) audioChunks.push(event.data);
+    });
+    mediaRecorder.addEventListener("stop", () => {
+      const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+      stopStream();
+      transcribe(audioBlob);
+    }, { once: true });
+    mediaRecorder.start();
+    setRecordState("recording", "Listening… Tap Stop when you are finished.");
+  } catch (error) {
+    stopStream();
+    const denied = error.name === "NotAllowedError" || error.name === "PermissionDeniedError";
+    setRecordState("idle", denied
+      ? "Microphone permission was denied. Allow microphone access in your browser and try again."
+      : "The microphone could not be started. Please try again.");
+  }
+}
+
+record.addEventListener("click", () => {
+  if (mediaRecorder?.state === "recording") {
+    mediaRecorder.stop();
+    return;
+  }
+  startRecording();
+});
 
 async function ask(question) {
   addMessage("user", question);
