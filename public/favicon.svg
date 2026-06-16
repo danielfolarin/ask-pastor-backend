@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Ask Pastor Daniel AI">
+  <circle cx="32" cy="32" r="30" fill="#1d5b42"/>
+  <circle cx="32" cy="32" r="25" fill="none" stroke="#fffaf0" stroke-opacity=".25" stroke-width="2"/>
+  <circle cx="45" cy="19" r="4" fill="#b68b45"/>
+  <text x="32" y="39" text-anchor="middle" fill="#f7f4ec" font-family="Georgia, 'Times New Roman', serif" font-size="22" letter-spacing="-1">PD</text>
+</svg>
