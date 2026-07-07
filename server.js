@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import fetch, { Blob, FormData } from "node-fetch";
 import fs from "node:fs";
+import { promises as fsp } from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +12,8 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "32kb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+const logFile = path.resolve(__dirname, process.env.LOG_FILE || "data/question-logs.jsonl");
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
@@ -32,7 +36,7 @@ const rateLimits = new Map();
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = Number(process.env.RATE_LIMIT_MAX || 20);
 
-app.use(["/ask", "/transcribe"], (req, res, next) => {
+app.use(["/ask", "/transcribe", "/feedback"], (req, res, next) => {
   const now = Date.now();
   const key = req.ip || "unknown";
   const current = rateLimits.get(key);
@@ -123,8 +127,211 @@ function sourceList(retrieved) {
   }));
 }
 
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[char]);
+}
+
+function csvValue(value = "") {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function requestLocation(req) {
+  return {
+    country: req.get("cf-ipcountry") || req.get("x-vercel-ip-country") || req.get("x-country") || "",
+    city: decodeURIComponent(req.get("x-vercel-ip-city") || req.get("x-appengine-city") || req.get("x-city") || "")
+  };
+}
+
+function detectDevice(userAgent = "") {
+  const value = userAgent.toLowerCase();
+  const device = /ipad|tablet/.test(value) ? "tablet" : /mobile|iphone|android/.test(value) ? "mobile" : "desktop";
+  const browser =
+    /edg\//.test(value) ? "Edge" :
+    /chrome|crios/.test(value) ? "Chrome" :
+    /safari/.test(value) ? "Safari" :
+    /firefox|fxios/.test(value) ? "Firefox" :
+    "Unknown";
+  return `${device} / ${browser}`;
+}
+
+async function ensureLogDir() {
+  await fsp.mkdir(path.dirname(logFile), { recursive: true });
+}
+
+async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
+  const userAgent = req.get("user-agent") || "";
+  const location = requestLocation(req);
+  const record = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    question,
+    answer,
+    pageUrl: typeof req.body?.pageUrl === "string" ? req.body.pageUrl.slice(0, 500) : "",
+    country: location.country,
+    city: location.city,
+    ip: req.ip || "",
+    userAgent,
+    device: detectDevice(userAgent),
+    feedbackRating
+  };
+  await ensureLogDir();
+  await fsp.appendFile(logFile, `${JSON.stringify(record)}\n`, "utf8");
+  return record.id;
+}
+
+async function readLogs() {
+  try {
+    const text = await fsp.readFile(logFile, "utf8");
+    return text
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+async function updateFeedback(logId, rating) {
+  const logs = await readLogs();
+  let updated = false;
+  for (const log of logs) {
+    if (log.id === logId) {
+      log.feedbackRating = rating;
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) return false;
+  await ensureLogDir();
+  const tempFile = `${logFile}.${process.pid}.tmp`;
+  await fsp.writeFile(tempFile, logs.map((log) => JSON.stringify(log)).join("\n") + "\n", "utf8");
+  await fsp.rename(tempFile, logFile);
+  return true;
+}
+
+function filterLogs(logs, query = "") {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return logs;
+  return logs.filter((log) =>
+    [log.question, log.answer, log.pageUrl, log.country, log.city, log.userAgent, log.device, log.feedbackRating]
+      .some((value) => String(value || "").toLowerCase().includes(needle))
+  );
+}
+
+function checkPassword(value = "") {
+  const expected = process.env.ADMIN_PASSWORD || "";
+  if (!expected || !value) return false;
+  const actualBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function requireAdmin(req, res, next) {
+  if (!process.env.ADMIN_PASSWORD) {
+    return res.status(503).send("Admin dashboard is not configured. Set ADMIN_PASSWORD in Render.");
+  }
+  const header = req.get("authorization") || "";
+  const [scheme, encoded] = header.split(" ");
+  if (scheme === "Basic" && encoded) {
+    const [, password = ""] = Buffer.from(encoded, "base64").toString("utf8").split(":");
+    if (checkPassword(password)) {
+      res.set("Cache-Control", "no-store");
+      return next();
+    }
+  }
+  res.set("WWW-Authenticate", 'Basic realm="Ask Pastor Daniel Admin"');
+  return res.status(401).send("Authentication required.");
+}
+
+function adminPage(logs, query) {
+  const rows = logs.slice(0, 500).map((log) => `
+    <tr>
+      <td>${escapeHtml(log.timestamp)}</td>
+      <td>${escapeHtml(log.question)}</td>
+      <td>${escapeHtml(log.answer)}</td>
+      <td>${escapeHtml([log.city, log.country].filter(Boolean).join(", "))}</td>
+      <td>${escapeHtml(log.device)}<br><small>${escapeHtml(log.userAgent)}</small></td>
+      <td>${escapeHtml(log.feedbackRating || "—")}</td>
+      <td><a href="${escapeHtml(log.pageUrl)}" target="_blank" rel="noopener noreferrer">Page</a></td>
+    </tr>
+  `).join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask Pastor Daniel AI Admin</title>
+  <style>
+    :root { color-scheme: light; --green: #1d5b42; --cream: #f7f4ec; --line: rgba(29,91,66,.16); }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--cream); color: #17211b; }
+    main { max-width: 1180px; margin: auto; padding: 32px 18px; }
+    header { display: flex; gap: 14px; justify-content: space-between; align-items: end; margin-bottom: 22px; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.04em; }
+    p { color: #637068; }
+    form { display: flex; gap: 8px; margin: 18px 0; }
+    input { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: inherit; }
+    button, .button { border: 0; border-radius: 12px; padding: 12px 14px; background: var(--green); color: white; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+    .panel { overflow: auto; background: rgba(255,255,252,.82); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 18px 50px rgba(38,52,43,.08); }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; }
+    th { color: var(--green); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+    td:nth-child(2), td:nth-child(3) { max-width: 310px; }
+    small { color: #637068; }
+    @media (max-width: 720px) { header, form { display: block; } .button, button { display: inline-block; margin-top: 8px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Question Logs</h1>
+        <p>${logs.length} matching records. Showing newest 500.</p>
+      </div>
+      <a class="button" href="/admin/export.csv?q=${encodeURIComponent(query)}">Export CSV</a>
+    </header>
+    <form method="get" action="/admin">
+      <input name="q" value="${escapeHtml(query)}" placeholder="Search questions, answers, location, device, or feedback">
+      <button type="submit">Search</button>
+    </form>
+    <div class="panel">
+      <table>
+        <thead><tr><th>Timestamp</th><th>Question</th><th>Answer</th><th>Location</th><th>Device</th><th>Feedback</th><th>URL</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7">No logs yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>`;
+}
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok", sources: chunks.length, model_configured: Boolean(process.env.MODEL_API_KEY) });
+});
+
+app.get("/admin", requireAdmin, async (req, res) => {
+  const query = typeof req.query.q === "string" ? req.query.q : "";
+  const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  res.type("html").send(adminPage(logs, query));
+});
+
+app.get("/admin/export.csv", requireAdmin, async (req, res) => {
+  const query = typeof req.query.q === "string" ? req.query.q : "";
+  const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  const header = ["timestamp", "question", "answer", "pageUrl", "country", "city", "device", "userAgent", "feedbackRating"];
+  const csv = [
+    header.join(","),
+    ...logs.map((log) => header.map((key) => csvValue(log[key])).join(","))
+  ].join("\n");
+  res.set({
+    "Content-Type": "text/csv; charset=utf-8",
+    "Content-Disposition": 'attachment; filename="ask-pastor-daniel-questions.csv"',
+    "Cache-Control": "no-store"
+  });
+  res.send(csv);
 });
 
 app.post("/transcribe", express.raw({ type: ["audio/*", "application/octet-stream"], limit: "15mb" }), async (req, res) => {
@@ -170,10 +377,15 @@ app.post("/ask", async (req, res) => {
   if (question.length > 3000) return res.status(400).json({ error: "Please shorten your question." });
 
   const urgentAnswer = safetyResponse(question);
-  if (urgentAnswer) return res.json({ answer: urgentAnswer, sources: [] });
+  if (urgentAnswer) {
+    const logId = await saveQuestionLog(req, { question, answer: urgentAnswer });
+    return res.json({ answer: urgentAnswer, sources: [], logId });
+  }
 
   if (!process.env.MODEL_API_URL || !process.env.MODEL_API_KEY || !process.env.MODEL_NAME) {
-    return res.status(503).json({ error: "The AI model has not been configured yet." });
+    const error = "The AI model has not been configured yet.";
+    const logId = await saveQuestionLog(req, { question, answer: error });
+    return res.status(503).json({ error, logId });
   }
 
   const retrieved = retrieve(question);
@@ -229,19 +441,42 @@ Application." Do not merely retell the passage.`;
     if (!response.ok) {
       console.error("Model provider error", response.status, data?.error?.message || data);
       if (response.status === 429) {
+        const error = "Ask Pastor Daniel AI needs active model credits before it can answer ordinary questions.";
+        const logId = await saveQuestionLog(req, { question, answer: error });
         return res.status(503).json({
-          error: "Ask Pastor Daniel AI needs active model credits before it can answer ordinary questions."
+          error,
+          logId
         });
       }
-      return res.status(502).json({ error: "The answer service is temporarily unavailable." });
+      const error = "The answer service is temporarily unavailable.";
+      const logId = await saveQuestionLog(req, { question, answer: error });
+      return res.status(502).json({ error, logId });
     }
     const answer = data?.choices?.[0]?.message?.content?.trim();
     if (!answer) return res.status(502).json({ error: "The answer service returned an empty response." });
-    res.json({ answer, sources: sourceList(retrieved) });
+    const logId = await saveQuestionLog(req, { question, answer });
+    res.json({ answer, sources: sourceList(retrieved), logId });
   } catch (error) {
     console.error(error);
-    res.status(502).json({ error: "There was an error generating a response. Please try again." });
+    const message = "There was an error generating a response. Please try again.";
+    try {
+      const logId = await saveQuestionLog(req, { question, answer: message });
+      res.status(502).json({ error: message, logId });
+    } catch {
+      res.status(502).json({ error: message });
+    }
   }
+});
+
+app.post("/feedback", async (req, res) => {
+  const logId = typeof req.body?.logId === "string" ? req.body.logId : "";
+  const rating = typeof req.body?.rating === "string" ? req.body.rating : "";
+  if (!logId || !["helpful", "not-helpful"].includes(rating)) {
+    return res.status(400).json({ error: "Invalid feedback." });
+  }
+  const updated = await updateFeedback(logId, rating);
+  if (!updated) return res.status(404).json({ error: "Log entry not found." });
+  res.json({ ok: true });
 });
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));

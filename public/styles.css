@@ -157,6 +157,28 @@ h2 { margin: 12px 0 15px; font-size: clamp(38px, 5vw, 64px); line-height: 1; }
 .bubble p:last-child { margin-bottom: 0; }
 .bubble strong { color: var(--green); }
 .sources { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.feedback button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--green);
+  background: rgba(29,91,66,.06);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.feedback button:disabled { opacity: .55; cursor: wait; }
 .typing span { display: inline-block; width: 6px; height: 6px; margin: 0 2px; border-radius: 50%; background: var(--gold); animation: pulse 1s infinite; }
 .typing span:nth-child(2) { animation-delay: .16s; }
 .typing span:nth-child(3) { animation-delay: .32s; }

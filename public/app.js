@@ -24,14 +24,21 @@ function formatAnswer(value) {
     .join("");
 }
 
-function addMessage(role, text, sources = []) {
+function addMessage(role, text, sources = [], logId = "") {
   const article = document.createElement("article");
   article.className = `message ${role}`;
   const citations = sources.length
     ? `<div class="sources"><strong>Retrieved sources:</strong> ${sources.map((source) => `${escapeHtml(source.title)}, p. ${source.page}`).join(" · ")}</div>`
     : "";
+  const feedback = role === "assistant" && logId
+    ? `<div class="feedback" data-log-id="${escapeHtml(logId)}">
+        <span>Was this helpful?</span>
+        <button type="button" data-rating="helpful">Yes</button>
+        <button type="button" data-rating="not-helpful">Not yet</button>
+      </div>`
+    : "";
   article.innerHTML = role === "assistant"
-    ? `<div class="avatar">PD</div><div class="bubble">${formatAnswer(text)}${citations}</div>`
+    ? `<div class="avatar">PD</div><div class="bubble">${formatAnswer(text)}${citations}${feedback}</div>`
     : `<div class="bubble"><p>${escapeHtml(text)}</p></div>`;
   messages.append(article);
   messages.scrollTop = messages.scrollHeight;
@@ -128,12 +135,12 @@ async function ask(question) {
     const response = await fetch("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: history.slice(-8) })
+      body: JSON.stringify({ question, history: history.slice(-8), pageUrl: window.location.href })
     });
     const data = await response.json();
     document.querySelector("#typing")?.remove();
     const answer = data.answer || data.error || "I could not form an answer. Please try again.";
-    addMessage("assistant", answer, data.sources || []);
+    addMessage("assistant", answer, data.sources || [], data.logId || "");
     history.push({ role: "assistant", text: answer });
   } catch {
     document.querySelector("#typing")?.remove();
@@ -151,6 +158,26 @@ form.addEventListener("submit", (event) => {
   input.value = "";
   input.style.height = "auto";
   ask(question);
+});
+
+messages.addEventListener("click", async (event) => {
+  const button = event.target.closest(".feedback button");
+  if (!button) return;
+  const container = button.closest(".feedback");
+  const logId = container.dataset.logId;
+  const rating = button.dataset.rating;
+  container.querySelectorAll("button").forEach((item) => { item.disabled = true; });
+  try {
+    const response = await fetch("/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logId, rating })
+    });
+    if (!response.ok) throw new Error("Feedback was not saved.");
+    container.innerHTML = "<span>Thank you for the feedback.</span>";
+  } catch {
+    container.innerHTML = "<span>Feedback could not be saved right now.</span>";
+  }
 });
 
 input.addEventListener("input", () => {
