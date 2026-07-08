@@ -194,6 +194,18 @@ async function ensureDb() {
   return true;
 }
 
+async function databaseAvailable() {
+  if (!dbPool) return false;
+  try {
+    await ensureDb();
+    return true;
+  } catch (error) {
+    dbReady = null;
+    console.error("Database logging is unavailable. Falling back to local log file.", error);
+    return false;
+  }
+}
+
 function dbRowToLog(row) {
   return {
     id: row.id,
@@ -226,26 +238,30 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
     device: detectDevice(userAgent),
     feedbackRating
   };
-  if (await ensureDb()) {
-    await dbPool.query(
-      `INSERT INTO question_logs
-        (id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [
-        record.id,
-        record.timestamp,
-        record.question,
-        record.answer,
-        record.pageUrl,
-        record.country,
-        record.city,
-        record.ip,
-        record.userAgent,
-        record.device,
-        record.feedbackRating
-      ]
-    );
-    return record.id;
+  if (await databaseAvailable()) {
+    try {
+      await dbPool.query(
+        `INSERT INTO question_logs
+          (id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          record.id,
+          record.timestamp,
+          record.question,
+          record.answer,
+          record.pageUrl,
+          record.country,
+          record.city,
+          record.ip,
+          record.userAgent,
+          record.device,
+          record.feedbackRating
+        ]
+      );
+      return record.id;
+    } catch (error) {
+      console.error("Could not save question log to database. Falling back to local log file.", error);
+    }
   }
   await ensureLogDir();
   await fsp.appendFile(logFile, `${JSON.stringify(record)}\n`, "utf8");
@@ -253,14 +269,18 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
 }
 
 async function readLogs() {
-  if (await ensureDb()) {
-    const result = await dbPool.query(`
-      SELECT id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating
-      FROM question_logs
-      ORDER BY timestamp DESC
-      LIMIT 5000
-    `);
-    return result.rows.map(dbRowToLog);
+  if (await databaseAvailable()) {
+    try {
+      const result = await dbPool.query(`
+        SELECT id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating
+        FROM question_logs
+        ORDER BY timestamp DESC
+        LIMIT 5000
+      `);
+      return result.rows.map(dbRowToLog);
+    } catch (error) {
+      console.error("Could not read question logs from database. Falling back to local log file.", error);
+    }
   }
   try {
     const text = await fsp.readFile(logFile, "utf8");
@@ -276,12 +296,16 @@ async function readLogs() {
 }
 
 async function updateFeedback(logId, rating) {
-  if (await ensureDb()) {
-    const result = await dbPool.query(
-      "UPDATE question_logs SET feedback_rating = $1 WHERE id = $2",
-      [rating, logId]
-    );
-    return result.rowCount > 0;
+  if (await databaseAvailable()) {
+    try {
+      const result = await dbPool.query(
+        "UPDATE question_logs SET feedback_rating = $1 WHERE id = $2",
+        [rating, logId]
+      );
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Could not update feedback in database. Falling back to local log file.", error);
+    }
   }
   const logs = await readLogs();
   let updated = false;
@@ -400,25 +424,35 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/admin", requireAdmin, async (req, res) => {
-  const query = typeof req.query.q === "string" ? req.query.q : "";
-  const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
-  res.type("html").send(adminPage(logs, query));
+  try {
+    const query = typeof req.query.q === "string" ? req.query.q : "";
+    const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+    res.type("html").send(adminPage(logs, query));
+  } catch (error) {
+    console.error("Admin dashboard failed", error);
+    res.status(500).send("The admin dashboard could not load logs right now. Please try again shortly.");
+  }
 });
 
 app.get("/admin/export.csv", requireAdmin, async (req, res) => {
-  const query = typeof req.query.q === "string" ? req.query.q : "";
-  const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
-  const header = ["timestamp", "question", "answer", "pageUrl", "country", "city", "device", "userAgent", "feedbackRating"];
-  const csv = [
-    header.join(","),
-    ...logs.map((log) => header.map((key) => csvValue(log[key])).join(","))
-  ].join("\n");
-  res.set({
-    "Content-Type": "text/csv; charset=utf-8",
-    "Content-Disposition": 'attachment; filename="ask-pastor-daniel-questions.csv"',
-    "Cache-Control": "no-store"
-  });
-  res.send(csv);
+  try {
+    const query = typeof req.query.q === "string" ? req.query.q : "";
+    const logs = filterLogs(await readLogs(), query).sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+    const header = ["timestamp", "question", "answer", "pageUrl", "country", "city", "device", "userAgent", "feedbackRating"];
+    const csv = [
+      header.join(","),
+      ...logs.map((log) => header.map((key) => csvValue(log[key])).join(","))
+    ].join("\n");
+    res.set({
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="ask-pastor-daniel-questions.csv"',
+      "Cache-Control": "no-store"
+    });
+    res.send(csv);
+  } catch (error) {
+    console.error("Admin export failed", error);
+    res.status(500).send("The question logs could not be exported right now. Please try again shortly.");
+  }
 });
 
 app.post("/transcribe", express.raw({ type: ["audio/*", "application/octet-stream"], limit: "15mb" }), async (req, res) => {
@@ -556,14 +590,19 @@ Application." Do not merely retell the passage.`;
 });
 
 app.post("/feedback", async (req, res) => {
-  const logId = typeof req.body?.logId === "string" ? req.body.logId : "";
-  const rating = typeof req.body?.rating === "string" ? req.body.rating : "";
-  if (!logId || !["helpful", "not-helpful"].includes(rating)) {
-    return res.status(400).json({ error: "Invalid feedback." });
+  try {
+    const logId = typeof req.body?.logId === "string" ? req.body.logId : "";
+    const rating = typeof req.body?.rating === "string" ? req.body.rating : "";
+    if (!logId || !["helpful", "not-helpful"].includes(rating)) {
+      return res.status(400).json({ error: "Invalid feedback." });
+    }
+    const updated = await updateFeedback(logId, rating);
+    if (!updated) return res.status(404).json({ error: "Log entry not found." });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Feedback update failed", error);
+    res.status(500).json({ error: "Feedback could not be saved right now." });
   }
-  const updated = await updateFeedback(logId, rating);
-  if (!updated) return res.status(404).json({ error: "Log entry not found." });
-  res.json({ ok: true });
 });
 
 app.use((req, res) => res.status(404).json({ error: "Not found" }));
