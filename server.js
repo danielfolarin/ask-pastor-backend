@@ -6,6 +6,7 @@ import { promises as fsp } from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -14,6 +15,14 @@ app.use(express.json({ limit: "32kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const logFile = path.resolve(__dirname, process.env.LOG_FILE || "data/question-logs.jsonl");
+const databaseUrl = process.env.DATABASE_URL || "";
+const dbPool = databaseUrl
+  ? new pg.Pool({
+      connectionString: databaseUrl,
+      ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false }
+    })
+  : null;
+let dbReady;
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
@@ -160,6 +169,47 @@ async function ensureLogDir() {
   await fsp.mkdir(path.dirname(logFile), { recursive: true });
 }
 
+async function ensureDb() {
+  if (!dbPool) return false;
+  if (!dbReady) {
+    dbReady = dbPool.query(`
+      CREATE TABLE IF NOT EXISTS question_logs (
+        id uuid PRIMARY KEY,
+        timestamp timestamptz NOT NULL DEFAULT now(),
+        question text NOT NULL,
+        answer text NOT NULL,
+        page_url text,
+        country text,
+        city text,
+        ip text,
+        user_agent text,
+        device text,
+        feedback_rating text
+      );
+      CREATE INDEX IF NOT EXISTS question_logs_timestamp_idx ON question_logs (timestamp DESC);
+      CREATE INDEX IF NOT EXISTS question_logs_feedback_idx ON question_logs (feedback_rating);
+    `);
+  }
+  await dbReady;
+  return true;
+}
+
+function dbRowToLog(row) {
+  return {
+    id: row.id,
+    timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+    question: row.question,
+    answer: row.answer,
+    pageUrl: row.page_url || "",
+    country: row.country || "",
+    city: row.city || "",
+    ip: row.ip || "",
+    userAgent: row.user_agent || "",
+    device: row.device || "",
+    feedbackRating: row.feedback_rating || ""
+  };
+}
+
 async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
   const userAgent = req.get("user-agent") || "";
   const location = requestLocation(req);
@@ -176,12 +226,42 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
     device: detectDevice(userAgent),
     feedbackRating
   };
+  if (await ensureDb()) {
+    await dbPool.query(
+      `INSERT INTO question_logs
+        (id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [
+        record.id,
+        record.timestamp,
+        record.question,
+        record.answer,
+        record.pageUrl,
+        record.country,
+        record.city,
+        record.ip,
+        record.userAgent,
+        record.device,
+        record.feedbackRating
+      ]
+    );
+    return record.id;
+  }
   await ensureLogDir();
   await fsp.appendFile(logFile, `${JSON.stringify(record)}\n`, "utf8");
   return record.id;
 }
 
 async function readLogs() {
+  if (await ensureDb()) {
+    const result = await dbPool.query(`
+      SELECT id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating
+      FROM question_logs
+      ORDER BY timestamp DESC
+      LIMIT 5000
+    `);
+    return result.rows.map(dbRowToLog);
+  }
   try {
     const text = await fsp.readFile(logFile, "utf8");
     return text
@@ -196,6 +276,13 @@ async function readLogs() {
 }
 
 async function updateFeedback(logId, rating) {
+  if (await ensureDb()) {
+    const result = await dbPool.query(
+      "UPDATE question_logs SET feedback_rating = $1 WHERE id = $2",
+      [rating, logId]
+    );
+    return result.rowCount > 0;
+  }
   const logs = await readLogs();
   let updated = false;
   for (const log of logs) {
