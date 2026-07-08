@@ -23,6 +23,8 @@ const dbPool = databaseUrl
     })
   : null;
 let dbReady;
+let lastDatabaseError = "";
+let lastLogStorage = dbPool ? "Database configured; waiting for first log check." : "Temporary local file storage";
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
@@ -198,9 +200,13 @@ async function databaseAvailable() {
   if (!dbPool) return false;
   try {
     await ensureDb();
+    lastDatabaseError = "";
+    lastLogStorage = "Supabase/Postgres database";
     return true;
   } catch (error) {
     dbReady = null;
+    lastDatabaseError = error.message || "Unknown database error";
+    lastLogStorage = "Temporary local file fallback";
     console.error("Database logging is unavailable. Falling back to local log file.", error);
     return false;
   }
@@ -258,8 +264,11 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
           record.feedbackRating
         ]
       );
+      lastLogStorage = "Supabase/Postgres database";
       return record.id;
     } catch (error) {
+      lastDatabaseError = error.message || "Unknown database error";
+      lastLogStorage = "Temporary local file fallback";
       console.error("Could not save question log to database. Falling back to local log file.", error);
     }
   }
@@ -277,8 +286,11 @@ async function readLogs() {
         ORDER BY timestamp DESC
         LIMIT 5000
       `);
+      lastLogStorage = "Supabase/Postgres database";
       return result.rows.map(dbRowToLog);
     } catch (error) {
+      lastDatabaseError = error.message || "Unknown database error";
+      lastLogStorage = "Temporary local file fallback";
       console.error("Could not read question logs from database. Falling back to local log file.", error);
     }
   }
@@ -302,8 +314,11 @@ async function updateFeedback(logId, rating) {
         "UPDATE question_logs SET feedback_rating = $1 WHERE id = $2",
         [rating, logId]
       );
+      lastLogStorage = "Supabase/Postgres database";
       return result.rowCount > 0;
     } catch (error) {
+      lastDatabaseError = error.message || "Unknown database error";
+      lastLogStorage = "Temporary local file fallback";
       console.error("Could not update feedback in database. Falling back to local log file.", error);
     }
   }
@@ -359,6 +374,11 @@ function requireAdmin(req, res, next) {
 }
 
 function adminPage(logs, query) {
+  const storageHelp = lastLogStorage === "Supabase/Postgres database"
+    ? "Persistent logging is active. Logs saved here should remain after rebuilds and restarts."
+    : dbPool
+      ? "The app is trying to use DATABASE_URL, but the database connection is failing. New logs may be temporary until the connection string is fixed."
+      : "DATABASE_URL is not set, so logs are temporary and can disappear after deploys or restarts.";
   const rows = logs.slice(0, 500).map((log) => `
     <tr>
       <td>${escapeHtml(log.timestamp)}</td>
@@ -383,6 +403,9 @@ function adminPage(logs, query) {
     header { display: flex; gap: 14px; justify-content: space-between; align-items: end; margin-bottom: 22px; }
     h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.04em; }
     p { color: #637068; }
+    .notice { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 16px 0 18px; background: rgba(255,255,252,.78); }
+    .notice strong { color: var(--green); }
+    .notice code { word-break: break-word; }
     form { display: flex; gap: 8px; margin: 18px 0; }
     input { flex: 1; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: inherit; }
     button, .button { border: 0; border-radius: 12px; padding: 12px 14px; background: var(--green); color: white; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
@@ -404,6 +427,11 @@ function adminPage(logs, query) {
       </div>
       <a class="button" href="/admin/export.csv?q=${encodeURIComponent(query)}">Export CSV</a>
     </header>
+    <div class="notice">
+      <strong>Storage:</strong> ${escapeHtml(lastLogStorage)}<br>
+      ${escapeHtml(storageHelp)}
+      ${lastDatabaseError ? `<br><small>Latest database error: <code>${escapeHtml(lastDatabaseError)}</code></small>` : ""}
+    </div>
     <form method="get" action="/admin">
       <input name="q" value="${escapeHtml(query)}" placeholder="Search questions, answers, location, device, or feedback">
       <button type="submit">Search</button>
