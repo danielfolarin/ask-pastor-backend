@@ -11,6 +11,16 @@ import pg from "pg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.set("trust proxy", 1);
+
+app.get("/health", (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[health] ${timestamp} ${req.ip || "unknown"}`);
+  res.status(200).json({
+    status: "ok",
+    timestamp
+  });
+});
+
 app.use(express.json({ limit: "32kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -446,10 +456,6 @@ function adminPage(logs, query) {
 </body>
 </html>`;
 }
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", sources: chunks.length, model_configured: Boolean(process.env.MODEL_API_KEY) });
-});
 
 app.get("/admin", requireAdmin, async (req, res) => {
   try {
