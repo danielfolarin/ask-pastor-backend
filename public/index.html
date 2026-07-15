@@ -26,15 +26,22 @@
       <span class="brand-mark">PD</span>
       <span><strong>Ask Pastor Daniel</strong><small>AI theological assistant</small></span>
     </a>
-    <span class="status"><i></i> Grounded in published teachings</span>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="https://www.thecuriousseekers.com/" target="_blank" rel="noopener noreferrer">Articles</a>
+      <span class="status"><i></i> Grounded in published teachings</span>
+    </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-copy">
+    <section class="hero section-reveal">
+      <div class="hero-copy reveal-item">
         <p class="eyebrow">Welcome to Ask Pastor Daniel AI</p>
         <h1>Ask Pastor<br><em>Daniel AI</em></h1>
         <p class="subheadline">Your AI Theological Assistant</p>
+        <p class="rotating-line" aria-live="polite">
+          <span class="rotating-prefix">You can ask:</span>
+          <span id="rotating-phrase">Ask about Scripture.</span>
+        </p>
         <div class="welcome-message">
           <p>I’m Pastor Daniel Folarin, pastor, teacher, author, and founder of Great Haven Assembly.</p>
           <p>I created this platform to help people grow in Christ, understand Scripture more deeply, and navigate life’s questions through a biblical and Christ-centered lens.</p>
@@ -45,7 +52,7 @@
           <a class="button primary" href="#ask">Start Asking Questions <span>↓</span></a>
         </div>
       </div>
-      <div class="portrait-wrap">
+      <div class="portrait-wrap reveal-item">
         <div class="portrait-halo"></div>
         <img src="/pastor-daniel.png" alt="Pastor Daniel Folarin" class="portrait">
         <div class="portrait-caption">
@@ -55,8 +62,25 @@
       </div>
     </section>
 
-    <section id="ask" class="ask-section">
-      <div class="section-heading">
+    <section class="marquee-section" aria-label="Ask Pastor Daniel values">
+      <div class="marquee-track">
+        <span>CHRIST-CENTERED</span><b>✦</b>
+        <span>SCRIPTURE-GROUNDED</span><b>•</b>
+        <span>PASTORALLY CAREFUL</span><b>✦</b>
+        <span>THEOLOGICALLY THOUGHTFUL</span><b>•</b>
+        <span>BUILDING BIBLICAL INTELLIGENCE</span><b>✦</b>
+        <span>FAITH SEEKING UNDERSTANDING</span><b>•</b>
+        <span>CHRIST-CENTERED</span><b>✦</b>
+        <span>SCRIPTURE-GROUNDED</span><b>•</b>
+        <span>PASTORALLY CAREFUL</span><b>✦</b>
+        <span>THEOLOGICALLY THOUGHTFUL</span><b>•</b>
+        <span>BUILDING BIBLICAL INTELLIGENCE</span><b>✦</b>
+        <span>FAITH SEEKING UNDERSTANDING</span><b>•</b>
+      </div>
+    </section>
+
+    <section id="ask" class="ask-section section-reveal">
+      <div class="section-heading reveal-item">
         <p class="eyebrow">Faith seeking understanding</p>
         <h2>Bring your questions.<br><em>Let us look to Christ.</em></h2>
         <p>Explore Scripture, theology, Christian living, and difficult questions through Pastor Daniel’s documented teachings and convictions.</p>
@@ -66,7 +90,7 @@
           <button>How should Christians understand the fear of God?</button>
         </div>
       </div>
-      <div class="chat-shell">
+      <div class="chat-shell reveal-item">
       <div id="messages" class="messages" aria-live="polite">
         <article class="message assistant">
           <div class="avatar">PD</div>
@@ -88,38 +112,72 @@
       </div>
     </section>
 
-    <section class="connect-section">
-      <div class="connect-intro">
+    <section class="seekers-section section-reveal" aria-labelledby="seekers-title">
+      <div class="seekers-copy reveal-item">
+        <p class="eyebrow">Go deeper</p>
+        <h2 id="seekers-title">The Curious Seekers</h2>
+        <p class="seekers-subheading">Building biblical intelligence, one seeker at a time.</p>
+        <p>Continue exploring Scripture, theology, apologetics, Christian living, and the person of Jesus Christ through articles and teaching resources by Dr. Daniel Folarin.</p>
+        <div class="seekers-actions">
+          <a class="button primary" href="https://www.thecuriousseekers.com/" target="_blank" rel="noopener noreferrer">Explore The Curious Seekers <span>↗</span></a>
+          <a class="text-link" href="https://www.thecuriousseekers.com/" target="_blank" rel="noopener noreferrer">Read the latest articles <span>→</span></a>
+        </div>
+      </div>
+      <div class="seekers-visual reveal-item" aria-hidden="true">
+        <div class="article-card card-one">
+          <span>Featured themes</span>
+          <strong>Scripture · Christ · Salvation</strong>
+        </div>
+        <div class="article-card card-two">
+          <span>Teaching library</span>
+          <strong>Apologetics · Discipleship · Mission</strong>
+        </div>
+        <div class="topic-orbit">
+          <span>SCRIPTURE</span>
+          <span>CHRIST</span>
+          <span>SALVATION</span>
+          <span>APOLOGETICS</span>
+          <span>DISCIPLESHIP</span>
+          <span>MISSION</span>
+          <span>ESCHATOLOGY</span>
+          <span>THE CHURCH</span>
+          <span>SPIRITUAL FORMATION</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="connect-section section-reveal">
+      <div class="connect-intro reveal-item">
         <p class="eyebrow">You are welcome here</p>
         <h2>Connect with the ministry</h2>
         <p>Prayer, testimony, encouragement, and partnership all matter. Choose the way you would like to connect.</p>
       </div>
       <div class="connect-grid">
-        <article class="connect-card">
+        <article class="connect-card reveal-item">
           <span class="card-icon" aria-hidden="true">✦</span>
           <h3>Request Prayer</h3>
           <p>If you would like prayer, encouragement, or pastoral support, I’d be honored to pray with you.</p>
           <a href="mailto:danielfolarin@greathaven.org?subject=Prayer%20Request">Send Prayer Request <span>→</span></a>
         </article>
-        <article class="connect-card">
+        <article class="connect-card reveal-item">
           <span class="card-icon" aria-hidden="true">♡</span>
           <h3>Share Your Story</h3>
           <p>Has Ask Pastor Daniel AI encouraged, helped, or blessed you? I’d love to hear how.</p>
           <a href="mailto:danielfolarin@greathaven.org?subject=Testimony">Share Testimony <span>→</span></a>
         </article>
-        <article class="connect-card">
+        <article class="connect-card reveal-item">
           <span class="card-icon" aria-hidden="true">✉</span>
           <h3>Join the Newsletter</h3>
           <p>Receive biblical insights, ministry updates, articles, and resources.</p>
           <a href="mailto:danielfolarin@greathaven.org?subject=Newsletter%20Signup">Join Newsletter <span>→</span></a>
         </article>
-        <article class="connect-card">
+        <article class="connect-card reveal-item">
           <span class="card-icon" aria-hidden="true">◎</span>
           <h3>Partner With This Ministry</h3>
           <p>If you would like to explore supporting and partnering with this ministry, I would love to connect with you personally.</p>
           <a href="mailto:danielfolarin@greathaven.org?subject=Partnership%20Inquiry">Contact Pastor Daniel <span>→</span></a>
         </article>
-        <article class="connect-card share-card">
+        <article class="connect-card share-card reveal-item">
           <span class="card-icon" aria-hidden="true">↗</span>
           <h3>Share This Resource</h3>
           <p>Help others discover Ask Pastor Daniel AI by sharing it with friends, family, church members, and ministry leaders.</p>
@@ -130,8 +188,9 @@
     </section>
   </main>
 
-  <footer>
+  <footer class="section-reveal">
     <p>Christ-centered. Scripture-grounded. Pastorally careful.</p>
+    <p class="footer-seekers">Explore more biblical teaching at <a href="https://www.thecuriousseekers.com/" target="_blank" rel="noopener noreferrer">The Curious Seekers</a>.</p>
   </footer>
   <script src="/app.js"></script>
 </body>

@@ -7,14 +7,62 @@ const recordStatus = document.querySelector("#record-status");
 const messages = document.querySelector("#messages");
 const shareSite = document.querySelector("#share-site");
 const shareStatus = document.querySelector("#share-status");
+const rotatingPhrase = document.querySelector("#rotating-phrase");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const history = [];
 let mediaRecorder;
 let mediaStream;
 let audioChunks = [];
 
+document.documentElement.classList.add("js-motion");
+
+function initMotion() {
+  const revealSections = document.querySelectorAll(".section-reveal");
+  if (reducedMotion.matches || !("IntersectionObserver" in window)) {
+    revealSections.forEach((section) => section.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.16, rootMargin: "0px 0px -70px 0px" });
+  revealSections.forEach((section) => observer.observe(section));
+}
+
+function initRotatingPhrase() {
+  if (!rotatingPhrase) return;
+  const phrases = [
+    "Ask about Scripture.",
+    "Ask about theology.",
+    "Ask about Christian living.",
+    "Ask about difficult questions.",
+    "Let us look to Christ."
+  ];
+  if (reducedMotion.matches) {
+    rotatingPhrase.textContent = phrases[0];
+    return;
+  }
+  let index = 0;
+  window.setInterval(() => {
+    rotatingPhrase.classList.add("phrase-changing");
+    window.setTimeout(() => {
+      index = (index + 1) % phrases.length;
+      rotatingPhrase.textContent = phrases[index];
+      rotatingPhrase.classList.remove("phrase-changing");
+    }, 430);
+  }, 3600);
+}
+
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
 }
+
+initMotion();
+initRotatingPhrase();
 
 function formatAnswer(value) {
   return escapeHtml(value)
