@@ -34,6 +34,7 @@ admin dashboard.
 
 - Dashboard: `/admin`
 - CSV export: `/admin/export.csv`
+- Knowledge uploads: `/admin/knowledge`
 - Set `DATABASE_URL` to a Supabase or Postgres connection string for persistent
   logs that survive deploys and restarts.
 - If `DATABASE_URL` is not set, logs fall back to `data/question-logs.jsonl`.
@@ -41,6 +42,33 @@ admin dashboard.
   frontend, but it is not persistent on Render Free.
 - The app automatically creates the `question_logs` table when `DATABASE_URL`
   is configured.
+
+## Version 2.0 Knowledge Base
+
+The assistant loads curated Markdown knowledge files from `knowledge/` before
+the older source-library chunks. These files define Pastor Daniel's biography,
+ministry information, doctrinal position, theological distinctives, preaching
+philosophy, Great Haven Assembly details, FAQs, and AI behavior rules.
+
+The protected admin knowledge panel is available at:
+
+```text
+/admin/knowledge
+```
+
+Admins can upload Markdown, TXT, PDF, and DOCX documents. Markdown and TXT are
+indexed directly. PDF and DOCX files are accepted and indexed when the server
+can extract readable text from them. Uploaded documents are stored in Postgres
+when `DATABASE_URL` is configured and fall back to local file storage
+otherwise.
+
+Answer priority is:
+
+1. Scripture.
+2. Pastor Daniel's uploaded theology and documents.
+3. Curated knowledge documents.
+4. Existing books, sermons, articles, and reference works.
+5. General reasoning.
 
 ## Keep Render Free Warm
 

@@ -6,9 +6,12 @@ import { promises as fsp } from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const execFileAsync = promisify(execFile);
 const app = express();
 app.set("trust proxy", 1);
 
@@ -25,6 +28,7 @@ app.use(express.json({ limit: "32kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const logFile = path.resolve(__dirname, process.env.LOG_FILE || "data/question-logs.jsonl");
+const uploadedKnowledgeDir = path.resolve(__dirname, process.env.UPLOADED_KNOWLEDGE_DIR || "data/knowledge-uploads");
 const databaseUrl = process.env.DATABASE_URL || "";
 const dbPool = databaseUrl
   ? new pg.Pool({
@@ -73,14 +77,40 @@ app.use(["/ask", "/transcribe", "/feedback"], (req, res, next) => {
 });
 
 const knowledgeDir = path.join(__dirname, "knowledge");
+const priorityKnowledgeFiles = [
+  "biography.md",
+  "testimony.md",
+  "ministry_story.md",
+  "statement_of_faith.md",
+  "doctrinal_position.md",
+  "theological_distinctives.md",
+  "preaching_philosophy.md",
+  "great_haven_assembly.md",
+  "faqs.md",
+  "ai_behavior_rules.md"
+];
 const assistantInstructions = fs.readFileSync(path.join(knowledgeDir, "ASSISTANT_INSTRUCTIONS.md"), "utf8");
 const convictions = fs.readFileSync(path.join(knowledgeDir, "CONVICTIONS.md"), "utf8");
 const voiceGuide = fs.readFileSync(path.join(knowledgeDir, "VOICE_GUIDE.md"), "utf8");
-const chunks = fs
+const documentChunks = fs
   .readFileSync(path.join(knowledgeDir, "retrieval-chunks.jsonl"), "utf8")
   .trim()
   .split("\n")
   .map((line) => JSON.parse(line));
+const priorityKnowledgeChunks = priorityKnowledgeFiles.flatMap((fileName) => {
+  const filePath = path.join(knowledgeDir, fileName);
+  if (!fs.existsSync(filePath)) return [];
+  const text = fs.readFileSync(filePath, "utf8").trim();
+  return chunkText(text, {
+    document_id: `v2-${fileName.replace(/\.md$/, "")}`,
+    title: fileName.replace(/_/g, " ").replace(/\.md$/, ""),
+    page_start: 1,
+    source_role: "controlling",
+    source_type: "knowledge"
+  });
+});
+let localUploadedKnowledgeChunks = loadLocalUploadedKnowledgeChunks();
+const chunks = [...priorityKnowledgeChunks, ...documentChunks];
 
 const stopWords = new Set([
   "about", "after", "again", "against", "also", "because", "been", "before", "being", "between",
@@ -95,13 +125,107 @@ function terms(text) {
   )];
 }
 
-function retrieve(question, limit = 6) {
+function chunkText(text, metadata, maxLength = 1400) {
+  const clean = String(text || "").replace(/\r/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  if (!clean) return [];
+  const paragraphs = clean.split(/\n\s*\n/).map((value) => value.trim()).filter(Boolean);
+  const chunksForDoc = [];
+  let current = "";
+  for (const paragraph of paragraphs.length ? paragraphs : [clean]) {
+    if (current && `${current}\n\n${paragraph}`.length > maxLength) {
+      chunksForDoc.push(current);
+      current = paragraph;
+    } else {
+      current = current ? `${current}\n\n${paragraph}` : paragraph;
+    }
+  }
+  if (current) chunksForDoc.push(current);
+  return chunksForDoc.map((chunk, index) => ({
+    ...metadata,
+    page_start: metadata.page_start || index + 1,
+    chunk_index: index,
+    text: chunk
+  }));
+}
+
+function loadLocalUploadedKnowledgeChunks() {
+  try {
+    if (!fs.existsSync(uploadedKnowledgeDir)) return [];
+    return fs.readdirSync(uploadedKnowledgeDir)
+      .filter((fileName) => fileName.endsWith(".json"))
+      .flatMap((fileName) => {
+        const record = JSON.parse(fs.readFileSync(path.join(uploadedKnowledgeDir, fileName), "utf8"));
+        return chunkText(record.text, {
+          document_id: record.id || `upload-${fileName}`,
+          title: record.title || record.fileName || "Uploaded knowledge",
+          page_start: 1,
+          source_role: "primary",
+          source_type: "uploaded"
+        });
+      });
+  } catch (error) {
+    console.error("Could not load local uploaded knowledge", error);
+    return [];
+  }
+}
+
+async function readUploadedKnowledgeRecords() {
+  if (await databaseAvailable()) {
+    try {
+      const result = await dbPool.query(`
+        SELECT id, title, file_name, mime_type, text, timestamp
+        FROM knowledge_documents
+        ORDER BY timestamp DESC
+        LIMIT 1000
+      `);
+      return result.rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        fileName: row.file_name,
+        mimeType: row.mime_type,
+        text: row.text,
+        timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+        storage: "database"
+      }));
+    } catch (error) {
+      console.error("Could not read uploaded knowledge from database. Falling back to local files.", error);
+    }
+  }
+  try {
+    if (!fs.existsSync(uploadedKnowledgeDir)) return [];
+    return fs.readdirSync(uploadedKnowledgeDir)
+      .filter((fileName) => fileName.endsWith(".json"))
+      .map((fileName) => JSON.parse(fs.readFileSync(path.join(uploadedKnowledgeDir, fileName), "utf8")));
+  } catch (error) {
+    console.error("Could not read local uploaded knowledge", error);
+    return [];
+  }
+}
+
+async function readUploadedKnowledgeChunks() {
+  const records = await readUploadedKnowledgeRecords();
+  if (!records.length) return localUploadedKnowledgeChunks;
+  return records.flatMap((record) => chunkText(record.text, {
+    document_id: record.id,
+    title: record.title || record.fileName || "Uploaded knowledge",
+    page_start: 1,
+    source_role: "primary",
+    source_type: "uploaded"
+  }));
+}
+
+function retrieve(question, limit = 8, extraChunks = []) {
   const queryTerms = terms(question);
   const phrase = question.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  return chunks
+  return [...chunks, ...extraChunks]
     .map((chunk) => {
       const text = chunk.text.toLowerCase();
-      let score = chunk.source_role === "controlling" ? 3 : chunk.source_role === "primary" ? 1.5 : 0;
+      let score =
+        chunk.source_type === "knowledge" ? 12 :
+        chunk.source_type === "uploaded" ? 8 :
+        chunk.source_role === "controlling" ? 5 :
+        chunk.source_role === "primary" ? 2 :
+        0;
       for (const term of queryTerms) {
         const matches = text.split(term).length - 1;
         score += Math.min(matches, 5) * (term.length > 7 ? 2.2 : 1);
@@ -158,6 +282,111 @@ function csvValue(value = "") {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
+function slugFileName(value = "knowledge") {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "knowledge";
+}
+
+function parseMultipartForm(buffer, contentType = "") {
+  const boundary = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/)?.[1] || contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/)?.[2];
+  if (!boundary) return {};
+  const raw = buffer.toString("binary");
+  const parts = raw.split(`--${boundary}`).slice(1, -1);
+  const form = {};
+  for (const part of parts) {
+    const trimmed = part.replace(/^\r\n/, "").replace(/\r\n$/, "");
+    const headerEnd = trimmed.indexOf("\r\n\r\n");
+    if (headerEnd === -1) continue;
+    const headerText = trimmed.slice(0, headerEnd);
+    const body = trimmed.slice(headerEnd + 4);
+    const name = headerText.match(/name="([^"]+)"/)?.[1];
+    if (!name) continue;
+    const fileName = headerText.match(/filename="([^"]*)"/)?.[1] || "";
+    const mimeType = headerText.match(/Content-Type:\s*([^\r\n]+)/i)?.[1] || "";
+    const value = Buffer.from(body, "binary");
+    form[name] = fileName
+      ? { fileName, mimeType, buffer: value }
+      : value.toString("utf8").trim();
+  }
+  return form;
+}
+
+function stripXml(value = "") {
+  return value
+    .replace(/<w:tab\/>/g, " ")
+    .replace(/<\/w:p>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function extractUploadText(file) {
+  const extension = path.extname(file.fileName || "").toLowerCase();
+  const mimeType = file.mimeType || "";
+  if ([".md", ".markdown", ".txt"].includes(extension) || /^text\//.test(mimeType)) {
+    return file.buffer.toString("utf8").trim();
+  }
+
+  const tempFile = path.join("/tmp", `${crypto.randomUUID()}-${slugFileName(file.fileName)}`);
+  await fsp.writeFile(tempFile, file.buffer);
+  try {
+    if (extension === ".pdf" || mimeType === "application/pdf") {
+      try {
+        const { stdout } = await execFileAsync("pdftotext", [tempFile, "-"], { maxBuffer: 10 * 1024 * 1024 });
+        return stdout.trim();
+      } catch {
+        return "PDF uploaded, but this server could not extract readable text from it. Upload a Markdown or TXT version to make the full content searchable.";
+      }
+    }
+    if (extension === ".docx" || mimeType.includes("wordprocessingml")) {
+      try {
+        const { stdout } = await execFileAsync("unzip", ["-p", tempFile, "word/document.xml"], { maxBuffer: 10 * 1024 * 1024 });
+        return stripXml(stdout);
+      } catch {
+        return "DOCX uploaded, but this server could not extract readable text from it. Upload a Markdown or TXT version to make the full content searchable.";
+      }
+    }
+  } finally {
+    fsp.rm(tempFile, { force: true }).catch(() => {});
+  }
+  return file.buffer.toString("utf8").replace(/\0/g, "").trim();
+}
+
+async function saveKnowledgeDocument({ title, fileName, mimeType, text }) {
+  const record = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    title: title || fileName || "Uploaded knowledge",
+    fileName: fileName || "upload.txt",
+    mimeType: mimeType || "text/plain",
+    text
+  };
+  if (await databaseAvailable()) {
+    try {
+      await dbPool.query(
+        `INSERT INTO knowledge_documents (id, timestamp, title, file_name, mime_type, text)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [record.id, record.timestamp, record.title, record.fileName, record.mimeType, record.text]
+      );
+      return record;
+    } catch (error) {
+      console.error("Could not save knowledge document to database. Falling back to local file.", error);
+    }
+  }
+  await fsp.mkdir(uploadedKnowledgeDir, { recursive: true });
+  await fsp.writeFile(path.join(uploadedKnowledgeDir, `${record.id}.json`), JSON.stringify(record, null, 2), "utf8");
+  localUploadedKnowledgeChunks = loadLocalUploadedKnowledgeChunks();
+  return record;
+}
+
 function requestLocation(req) {
   return {
     country: req.get("cf-ipcountry") || req.get("x-vercel-ip-country") || req.get("x-country") || "",
@@ -200,6 +429,17 @@ async function ensureDb() {
       );
       CREATE INDEX IF NOT EXISTS question_logs_timestamp_idx ON question_logs (timestamp DESC);
       CREATE INDEX IF NOT EXISTS question_logs_feedback_idx ON question_logs (feedback_rating);
+      ALTER TABLE question_logs ENABLE ROW LEVEL SECURITY;
+      CREATE TABLE IF NOT EXISTS knowledge_documents (
+        id uuid PRIMARY KEY,
+        timestamp timestamptz NOT NULL DEFAULT now(),
+        title text NOT NULL,
+        file_name text NOT NULL,
+        mime_type text,
+        text text NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS knowledge_documents_timestamp_idx ON knowledge_documents (timestamp DESC);
+      ALTER TABLE knowledge_documents ENABLE ROW LEVEL SECURITY;
     `);
   }
   await dbReady;
@@ -436,6 +676,7 @@ function adminPage(logs, query) {
         <p>${logs.length} matching records. Showing newest 500.</p>
       </div>
       <a class="button" href="/admin/export.csv?q=${encodeURIComponent(query)}">Export CSV</a>
+      <a class="button" href="/admin/knowledge">Knowledge</a>
     </header>
     <div class="notice">
       <strong>Storage:</strong> ${escapeHtml(lastLogStorage)}<br>
@@ -457,6 +698,71 @@ function adminPage(logs, query) {
 </html>`;
 }
 
+function knowledgeAdminPage(records, message = "") {
+  const rows = records.map((record) => `
+    <tr>
+      <td>${escapeHtml(record.timestamp || "")}</td>
+      <td>${escapeHtml(record.title || "")}</td>
+      <td>${escapeHtml(record.fileName || "")}</td>
+      <td>${escapeHtml(record.mimeType || "")}</td>
+      <td>${escapeHtml(record.storage || "local/database")}</td>
+    </tr>
+  `).join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask Pastor Daniel AI Knowledge</title>
+  <style>
+    :root { color-scheme: light; --green: #1d5b42; --cream: #f7f4ec; --line: rgba(29,91,66,.16); }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--cream); color: #17211b; }
+    main { max-width: 980px; margin: auto; padding: 32px 18px; }
+    header { display: flex; gap: 14px; justify-content: space-between; align-items: end; margin-bottom: 22px; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.04em; }
+    p { color: #637068; }
+    .card { background: rgba(255,255,252,.82); border: 1px solid var(--line); border-radius: 18px; padding: 18px; margin: 18px 0; box-shadow: 0 18px 50px rgba(38,52,43,.08); }
+    label { display: block; font-weight: 800; color: var(--green); margin: 12px 0 6px; }
+    input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: inherit; background: white; }
+    button, .button { display: inline-block; border: 0; border-radius: 12px; padding: 12px 14px; background: var(--green); color: white; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; margin-top: 12px; }
+    .notice { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: 16px 0 18px; background: rgba(255,255,252,.78); }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .panel { overflow: auto; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; }
+    th { color: var(--green); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Knowledge</h1>
+        <p>Upload books, sermons, articles, notes, Markdown, TXT, DOCX, or PDF files for retrieval.</p>
+      </div>
+      <a class="button" href="/admin">Question Logs</a>
+    </header>
+    ${message ? `<div class="notice">${escapeHtml(message)}</div>` : ""}
+    <section class="card">
+      <form method="post" action="/admin/knowledge" enctype="multipart/form-data">
+        <label for="title">Title</label>
+        <input id="title" name="title" placeholder="Example: Sermon on Union With Christ">
+        <label for="document">Document</label>
+        <input id="document" name="document" type="file" accept=".txt,.md,.markdown,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+        <button type="submit">Upload and Index</button>
+      </form>
+      <p>Best results: upload Markdown or TXT. PDF and DOCX are accepted and indexed when the server can extract readable text.</p>
+    </section>
+    <section class="card panel">
+      <table>
+        <thead><tr><th>Timestamp</th><th>Title</th><th>File</th><th>Type</th><th>Storage</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5">No uploaded knowledge documents yet.</td></tr>'}</tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
 app.get("/admin", requireAdmin, async (req, res) => {
   try {
     const query = typeof req.query.q === "string" ? req.query.q : "";
@@ -465,6 +771,45 @@ app.get("/admin", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Admin dashboard failed", error);
     res.status(500).send("The admin dashboard could not load logs right now. Please try again shortly.");
+  }
+});
+
+app.get("/admin/knowledge", requireAdmin, async (req, res) => {
+  try {
+    const records = await readUploadedKnowledgeRecords();
+    const message = typeof req.query.message === "string" ? req.query.message : "";
+    res.type("html").send(knowledgeAdminPage(records, message));
+  } catch (error) {
+    console.error("Knowledge admin failed", error);
+    res.status(500).send("The knowledge dashboard could not load right now. Please try again shortly.");
+  }
+});
+
+app.post("/admin/knowledge", requireAdmin, express.raw({ type: () => true, limit: "20mb" }), async (req, res) => {
+  try {
+    const form = parseMultipartForm(req.body, req.get("content-type") || "");
+    const file = form.document;
+    if (!file?.buffer?.length) {
+      return res.status(400).send("Please choose a document to upload.");
+    }
+    const extractedText = await extractUploadText(file);
+    if (!extractedText.trim()) {
+      return res.status(400).send("No readable text could be extracted from this document.");
+    }
+    const title = typeof form.title === "string" && form.title.trim()
+      ? form.title.trim()
+      : path.basename(file.fileName, path.extname(file.fileName));
+    const record = await saveKnowledgeDocument({
+      title,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      text: extractedText.slice(0, 300000)
+    });
+    const message = `Indexed "${record.title}" for Ask Pastor Daniel AI.`;
+    res.redirect(`/admin/knowledge?message=${encodeURIComponent(message)}`);
+  } catch (error) {
+    console.error("Knowledge upload failed", error);
+    res.status(500).send("The document could not be uploaded and indexed right now.");
   }
 });
 
@@ -543,7 +888,8 @@ app.post("/ask", async (req, res) => {
     return res.status(503).json({ error, logId });
   }
 
-  const retrieved = retrieve(question);
+  const uploadedKnowledge = await readUploadedKnowledgeChunks();
+  const retrieved = retrieve(question, 8, uploadedKnowledge);
   const context = retrieved.length
     ? retrieved.map((source, index) =>
         `[Source ${index + 1}: ${source.title}, page ${source.page_start}, role: ${source.source_role}]\n${source.text}`
@@ -560,6 +906,15 @@ ${voiceGuide}
 
 Use only the supplied retrieved passages when claiming Pastor Daniel's documented position. Include a short "Sources" section at the end listing only sources you actually used, with title and page. Never fabricate a citation.
 
+SOURCE PRIORITY:
+Use this order when answering:
+1. Scripture interpreted in context.
+2. Pastor Daniel's uploaded theology and documents.
+3. Curated knowledge documents about Pastor Daniel, Great Haven Assembly, and Ask Pastor Daniel.
+4. Existing books, sermons, articles, and reference works.
+5. General reasoning.
+If Pastor Daniel's uploaded theology explicitly answers a subject, prefer that answer. Never contradict the uploaded theology. Never answer as if Pastor Daniel, Great Haven Assembly, The Curious Seekers, or Ask Pastor Daniel are unknown when the knowledge base provides the answer.
+
 RETRIEVED PASSAGES:
 ${context}
 
@@ -569,7 +924,10 @@ evangelical summary. For passage questions, help the reader observe the text
 before explaining it. Notice literary movement, repeated words, cultural
 context, canonical connections, and Christological significance where
 relevant. Briefly acknowledge legitimate orthodox alternatives when needed.
-Use a warm conversational flow with only essential headings or bullets. Never
+For FAQ-style questions about Pastor Daniel, Great Haven Assembly, beliefs,
+service times, invitations, contact details, or the ministry, answer directly
+from the knowledge base before expanding. Use a warm conversational flow with
+only essential headings or bullets. Never
 use boilerplate sections titled "Key Themes," "Conclusion," "Reflection,"
 "Observations and Themes," "Christological Significance," or "Pastoral
 Application." Do not merely retell the passage.`;
