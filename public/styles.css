@@ -705,8 +705,8 @@ h1 { font-size: clamp(50px, 6vw, 76px); }
 .section-heading { padding-top: 12px; }
 .suggestions { margin-top: 18px; }
 .suggestions button { color: var(--blue); border-color: rgba(29,35,48,.12); }
-.chat-shell { min-height: 620px; border-radius: 14px; box-shadow: 0 8px 26px rgba(29,35,48,.045); }
-.messages { padding: 20px; }
+.chat-shell { min-height: 860px; border-radius: 14px; box-shadow: 0 8px 26px rgba(29,35,48,.045); }
+.messages { min-height: 690px; max-height: 760px; padding: 24px; }
 .avatar { width: 28px; height: 28px; font-size: 9px; }
 .bubble { max-width: 90%; padding: 12px 14px; font-size: 12px; }
 .resource-links { margin-top: 13px; padding-top: 11px; }
@@ -746,6 +746,8 @@ footer { padding-top: 24px; }
   h1 { font-size: 52px; }
   .portrait-wrap { height: 380px; border-radius: 18px; }
   .ask-section { padding: 60px 0; }
+  .chat-shell { min-height: 720px; }
+  .messages { min-height: 560px; max-height: 620px; }
   .marquee-track { font-size: 7px; }
   .resource-library-grid, .connect-grid { grid-template-columns: 1fr; }
   .seekers-section { padding: 46px 22px; }
