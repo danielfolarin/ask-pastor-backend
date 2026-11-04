@@ -72,7 +72,7 @@ function formatAnswer(value) {
     .join("");
 }
 
-function addMessage(role, text, sources = [], logId = "") {
+function addMessage(role, text, sources = [], logId = "", resources = []) {
   const article = document.createElement("article");
   article.className = `message ${role}`;
   const citations = sources.length
@@ -85,8 +85,15 @@ function addMessage(role, text, sources = [], logId = "") {
         <button type="button" data-rating="not-helpful">Not yet</button>
       </div>`
     : "";
+  const recommendedResources = role === "assistant" && resources.length
+    ? `<div class="resource-links"><strong>Recommended next steps</strong><div class="resource-link-grid">${resources.map((resource) => `
+        <a href="${escapeHtml(resource.url)}" target="_blank" rel="noopener noreferrer" class="resource-link resource-${escapeHtml(resource.type)}">
+          <span>${escapeHtml(resource.type === "sermon" ? "▶" : resource.type === "church" ? "✦" : "▤")}</span>
+          <span><strong>${escapeHtml(resource.title)}</strong><small>${escapeHtml(resource.description)}</small><em>${escapeHtml(resource.label)} ↗</em></span>
+        </a>`).join("")}</div></div>`
+    : "";
   article.innerHTML = role === "assistant"
-    ? `<div class="avatar">PD</div><div class="bubble">${formatAnswer(text)}${citations}${feedback}</div>`
+    ? `<div class="avatar">PD</div><div class="bubble">${formatAnswer(text)}${citations}${recommendedResources}${feedback}</div>`
     : `<div class="bubble"><p>${escapeHtml(text)}</p></div>`;
   messages.append(article);
   messages.scrollTop = messages.scrollHeight;
@@ -188,7 +195,7 @@ async function ask(question) {
     const data = await response.json();
     document.querySelector("#typing")?.remove();
     const answer = data.answer || data.error || "I could not form an answer. Please try again.";
-    addMessage("assistant", answer, data.sources || [], data.logId || "");
+    addMessage("assistant", answer, data.sources || [], data.logId || "", data.resources || []);
     history.push({ role: "assistant", text: answer });
   } catch {
     document.querySelector("#typing")?.remove();

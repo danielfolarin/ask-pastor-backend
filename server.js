@@ -272,6 +272,76 @@ function sourceList(retrieved) {
   }));
 }
 
+const ministryResources = [
+  {
+    keywords: ["salvation", "soteria", "sonship", "redemption", "rest", "saved"],
+    title: "Soteria and Rest",
+    description: "Continue reflecting on salvation, sonship, redemption, and the rest found in Christ.",
+    type: "book"
+  },
+  {
+    keywords: ["fear of god", "reverence", "afraid of god", "fear god"],
+    title: "The Fear of God",
+    description: "Explore the holy fear that is rooted in knowing God, not in hiding from Him.",
+    type: "book"
+  },
+  {
+    keywords: ["genesis", "creation", "image of god", "image", "humanity"],
+    title: "A Revelation from Genesis",
+    description: "Go deeper into Genesis, creation, humanity, and the biblical story that leads us to Christ.",
+    type: "teaching"
+  },
+  {
+    keywords: ["shepherd", "pastor", "guidance", "care", "leadership"],
+    title: "The Good Shepherd",
+    description: "Consider the care, presence, and leadership of Christ as the Good Shepherd.",
+    type: "teaching"
+  },
+  {
+    keywords: ["parable", "parables", "story jesus", "kingdom"],
+    title: "Parables",
+    description: "Read the parables with attention to their setting, structure, and announcement of the kingdom.",
+    type: "teaching"
+  },
+  {
+    keywords: ["women", "woman", "mary", "priscilla", "new testament"],
+    title: "Women in the New Testament",
+    description: "Study the witness and vocation of women in the New Testament in its historical context.",
+    type: "teaching"
+  }
+];
+
+function resourceRecommendations(question) {
+  const normalizedQuestion = question.toLowerCase();
+  const matched = ministryResources.find((resource) =>
+    resource.keywords.some((keyword) => normalizedQuestion.includes(keyword))
+  ) || ministryResources[0];
+  const sermonQuery = encodeURIComponent(`Daniel Folarin Great Haven Assembly ${question}`.slice(0, 180));
+  return [
+    {
+      type: "sermon",
+      title: "Find a related sermon",
+      description: "Search Daniel Folarin and Great Haven Assembly teaching related to this question.",
+      label: "Search YouTube",
+      url: `https://www.youtube.com/results?search_query=${sermonQuery}`
+    },
+    {
+      type: "resource",
+      title: matched.title,
+      description: matched.description,
+      label: "Explore teaching",
+      url: "https://portal.greathaven.org/"
+    },
+    {
+      type: "church",
+      title: "Great Haven Assembly",
+      description: "Visit the ministry hub for sermons, books, Bible resources, and ways to connect.",
+      label: "Visit Great Haven",
+      url: "https://portal.greathaven.org/"
+    }
+  ];
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
@@ -879,7 +949,7 @@ app.post("/ask", async (req, res) => {
   const urgentAnswer = safetyResponse(question);
   if (urgentAnswer) {
     const logId = await saveQuestionLog(req, { question, answer: urgentAnswer });
-    return res.json({ answer: urgentAnswer, sources: [], logId });
+    return res.json({ answer: urgentAnswer, sources: [], resources: resourceRecommendations(question), logId });
   }
 
   if (!process.env.MODEL_API_URL || !process.env.MODEL_API_KEY || !process.env.MODEL_NAME) {
@@ -958,17 +1028,18 @@ Application." Do not merely retell the passage.`;
         const logId = await saveQuestionLog(req, { question, answer: error });
         return res.status(503).json({
           error,
+          resources: resourceRecommendations(question),
           logId
         });
       }
       const error = "The answer service is temporarily unavailable.";
       const logId = await saveQuestionLog(req, { question, answer: error });
-      return res.status(502).json({ error, logId });
+      return res.status(502).json({ error, resources: resourceRecommendations(question), logId });
     }
     const answer = data?.choices?.[0]?.message?.content?.trim();
     if (!answer) return res.status(502).json({ error: "The answer service returned an empty response." });
     const logId = await saveQuestionLog(req, { question, answer });
-    res.json({ answer, sources: sourceList(retrieved), logId });
+    res.json({ answer, sources: sourceList(retrieved), resources: resourceRecommendations(question), logId });
   } catch (error) {
     console.error(error);
     const message = "There was an error generating a response. Please try again.";
