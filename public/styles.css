@@ -642,7 +642,7 @@ h1 { margin-top: 20px; font-size: clamp(54px, 6.3vw, 84px); letter-spacing: -.05
 .rotating-line { margin-bottom: 24px; font-size: 13px; }
 .welcome-message { font-size: 13px; line-height: 1.8; }
 .welcome-message p { margin-bottom: 9px; }
-.hero-actions { margin-top: 25px; }
+.hero-actions { margin-top: 30px; }
 .button { border-radius: 9px; padding: 12px 15px; font-size: 11px; }
 .button.primary { background: var(--green); box-shadow: none; }
 .button.primary:hover { background: var(--green-dark); box-shadow: none; }
