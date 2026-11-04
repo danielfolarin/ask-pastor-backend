@@ -70,10 +70,15 @@ Answer priority is:
 4. Existing books, sermons, articles, and reference works.
 5. General reasoning.
 
-## Keep Render Free Warm
+## Keep the App Always Available
 
-Render Free services can go to sleep when they are idle. To reduce cold-start
-waiting for the first visitor, configure an external uptime monitor to request:
+The Render blueprint uses the paid `starter` service plan so the app remains
+running and visitors do not see the Render booting page after inactivity.
+Render Free web services sleep after idle time and cannot guarantee an
+always-on experience. Applying the `starter` plan may incur Render charges.
+
+For a Free service, an external uptime monitor can reduce (but cannot
+guarantee removal of) cold-start waiting by requesting:
 
 ```text
 https://askpastordaniel.greathaven.org/health
