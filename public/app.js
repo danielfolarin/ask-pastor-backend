@@ -12,6 +12,10 @@ const authPanel = document.querySelector("#auth-panel");
 const authClose = document.querySelector("#auth-close");
 const authForm = document.querySelector("#auth-form");
 const authEmail = document.querySelector("#auth-email");
+const authPassword = document.querySelector("#auth-password");
+const authSubmit = document.querySelector("#auth-submit");
+const authModeToggle = document.querySelector("#auth-mode-toggle");
+const authDescription = document.querySelector("#auth-description");
 const authStatus = document.querySelector("#auth-status");
 const historyButton = document.querySelector("#history-button");
 const historyPanel = document.querySelector("#history-panel");
@@ -27,6 +31,7 @@ let currentConversationId = "";
 let mediaRecorder;
 let mediaStream;
 let audioChunks = [];
+let authMode = "signup";
 
 document.documentElement.classList.add("js-motion");
 
@@ -364,6 +369,7 @@ authButton.addEventListener("click", async () => {
     return;
   }
   authStatus.textContent = "";
+  setAuthMode("signup");
   setPanel(authPanel, true);
   authEmail.focus();
 });
@@ -375,20 +381,50 @@ historyButton.addEventListener("click", () => {
   loadConversations();
 });
 
+function setAuthMode(mode) {
+  authMode = mode;
+  const signingIn = mode === "signin";
+  authSubmit.textContent = signingIn ? "Sign in" : "Create account";
+  authPassword.autocomplete = signingIn ? "current-password" : "new-password";
+  authDescription.textContent = signingIn
+    ? "Sign in to reopen your saved conversations and continue where you stopped."
+    : "Create an account with your email and a password to keep your conversations available.";
+  authModeToggle.textContent = signingIn
+    ? "Need an account? Create one"
+    : "Already have an account? Sign in";
+  authStatus.textContent = "";
+}
+
+authModeToggle.addEventListener("click", () => {
+  setAuthMode(authMode === "signup" ? "signin" : "signup");
+  authPassword.focus();
+});
+
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!supabaseClient) return;
   const email = authEmail.value.trim();
-  authStatus.textContent = "Sending your secure sign-in link…";
+  const password = authPassword.value;
+  const signingIn = authMode === "signin";
+  authSubmit.disabled = true;
+  authStatus.textContent = signingIn ? "Signing you in…" : "Creating your account…";
   try {
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin }
-    });
+    const result = signingIn
+      ? await supabaseClient.auth.signInWithPassword({ email, password })
+      : await supabaseClient.auth.signUp({ email, password });
+    const { data, error } = result;
     if (error) throw error;
-    authStatus.textContent = "Check your email for the sign-in link. You can close this window after it arrives.";
+    if (!signingIn && !data.session) {
+      authStatus.textContent = "Your account was created. Check your email to confirm it, then sign in here.";
+    } else {
+      authStatus.textContent = signingIn ? "You are signed in." : "Your account is ready.";
+      authPassword.value = "";
+      setPanel(authPanel, false);
+    }
   } catch (error) {
-    authStatus.textContent = error.message || "The sign-in link could not be sent.";
+    authStatus.textContent = error.message || (signingIn ? "Sign-in failed." : "Account creation failed.");
+  } finally {
+    authSubmit.disabled = false;
   }
 });
 

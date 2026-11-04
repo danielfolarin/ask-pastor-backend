@@ -37,8 +37,8 @@ admin dashboard.
 - Knowledge uploads: `/admin/knowledge`
 - Set `DATABASE_URL` to a Supabase or Postgres connection string for persistent
   logs that survive deploys and restarts.
-- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` to enable optional passwordless
-  email login and saved conversations. The anon key is public by design; never
+- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` to enable optional email/password
+  login and saved conversations. The anon key is public by design; never
   place a Supabase service-role key in frontend code.
 - If `DATABASE_URL` is not set, logs fall back to `data/question-logs.jsonl`.
   That local fallback is ignored by Git and never served from the public
@@ -61,8 +61,8 @@ The protected admin knowledge panel is available at:
 
 ## Optional Saved Conversations
 
-The public chat remains available to guests. To enable passwordless email
-login and private conversation history, add these Render environment variables:
+The public chat remains available to guests. To enable email/password login and
+private conversation history, add these Render environment variables:
 
 ```text
 SUPABASE_URL=https://your-project.supabase.co
@@ -72,8 +72,13 @@ SUPABASE_ANON_KEY=your-public-anon-key
 Use the Supabase project's public `anon` key only. Never use the service-role
 key in the browser or in `SUPABASE_ANON_KEY`.
 
-In Supabase, open **Authentication → URL Configuration** and add the deployed
-site URL to the allowed redirect URLs:
+In Supabase, open **Authentication → Sign In / Providers → Email** and keep
+email enabled. Disable **Confirm email** if you want users to sign in
+immediately without an email-link step. If confirmation remains enabled, users
+must confirm their email before signing in.
+
+The deployed site URL should also be present in Supabase **Authentication → URL
+Configuration**:
 
 ```text
 https://askpastordaniel.greathaven.org
