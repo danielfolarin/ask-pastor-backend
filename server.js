@@ -311,6 +311,8 @@ const ministryResources = [
   }
 ];
 
+const booksAndStudiesUrl = "https://www.amazon.ca/s?i=stripbooks&rh=p_27%3ADr.%2BDaniel%2BFolarin&s=relevancerank&text=Dr.+Daniel+Folarin&ref=dp_byline_sr_book_1";
+
 function resourceRecommendations(question) {
   const normalizedQuestion = question.toLowerCase();
   const matched = ministryResources.find((resource) =>
@@ -330,7 +332,7 @@ function resourceRecommendations(question) {
       title: matched.title,
       description: matched.description,
       label: "Explore teaching",
-      url: "https://portal.greathaven.org/"
+      url: booksAndStudiesUrl
     },
     {
       type: "church",
