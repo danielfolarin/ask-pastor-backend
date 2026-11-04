@@ -14,7 +14,8 @@ const authForm = document.querySelector("#auth-form");
 const authEmail = document.querySelector("#auth-email");
 const authPassword = document.querySelector("#auth-password");
 const authSubmit = document.querySelector("#auth-submit");
-const authModeToggle = document.querySelector("#auth-mode-toggle");
+const authSignupMode = document.querySelector("#auth-signup-mode");
+const authSigninMode = document.querySelector("#auth-signin-mode");
 const authDescription = document.querySelector("#auth-description");
 const authStatus = document.querySelector("#auth-status");
 const historyButton = document.querySelector("#history-button");
@@ -389,14 +390,18 @@ function setAuthMode(mode) {
   authDescription.textContent = signingIn
     ? "Sign in to reopen your saved conversations and continue where you stopped."
     : "Create an account with your email and a password to keep your conversations available.";
-  authModeToggle.textContent = signingIn
-    ? "Need an account? Create one"
-    : "Already have an account? Sign in";
+  authSignupMode.classList.toggle("active", !signingIn);
+  authSigninMode.classList.toggle("active", signingIn);
   authStatus.textContent = "";
 }
 
-authModeToggle.addEventListener("click", () => {
-  setAuthMode(authMode === "signup" ? "signin" : "signup");
+authSignupMode.addEventListener("click", () => {
+  setAuthMode("signup");
+  authPassword.focus();
+});
+
+authSigninMode.addEventListener("click", () => {
+  setAuthMode("signin");
   authPassword.focus();
 });
 

@@ -229,7 +229,10 @@
         <input id="auth-password" type="password" autocomplete="new-password" minlength="6" placeholder="At least 6 characters" required>
         <button id="auth-submit" class="button primary" type="submit">Create account</button>
       </form>
-      <button id="auth-mode-toggle" class="auth-mode-toggle" type="button">Already have an account? Sign in</button>
+      <div class="auth-mode-actions" aria-label="Account actions">
+        <button id="auth-signup-mode" class="auth-mode-button" type="button">Create account</button>
+        <button id="auth-signin-mode" class="auth-mode-button secondary" type="button">Sign in</button>
+      </div>
       <p id="auth-status" class="auth-status" aria-live="polite"></p>
     </div>
   </div>

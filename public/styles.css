@@ -795,8 +795,11 @@ footer { padding-top: 24px; }
 .auth-card label { display: block; margin-bottom: 7px; color: var(--blue); font-size: 11px; font-weight: 700; }
 .auth-card input { width: 100%; padding: 12px; border: 1px solid rgba(29,35,48,.16); border-radius: 8px; font: inherit; }
 .auth-card form button { width: 100%; margin-top: 12px; }
-.auth-mode-toggle { margin-top: 15px; border: 0; padding: 0; color: var(--green); background: transparent; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.auth-mode-toggle:hover { color: var(--wine); }
+.auth-mode-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 14px; }
+.auth-mode-button { min-height: 42px; border: 1px solid var(--wine); border-radius: 8px; padding: 9px 12px; color: var(--wine); background: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.auth-mode-button.active, .auth-mode-button:hover { color: #fff; background: var(--wine); }
+.auth-mode-button.secondary { color: var(--blue); border-color: var(--blue); }
+.auth-mode-button.secondary.active, .auth-mode-button.secondary:hover { color: #fff; background: var(--blue); }
 .auth-close { border: 0; padding: 0; color: var(--muted); background: transparent; font-size: 26px; line-height: 1; cursor: pointer; }
 .auth-card > .auth-close { position: absolute; top: 18px; right: 20px; }
 .history-panel {
