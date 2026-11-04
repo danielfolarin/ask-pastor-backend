@@ -686,3 +686,67 @@ footer { padding-bottom: 24px; font-size: 9px; }
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
 }
+
+/* Final reduction: let the content, portrait, and conversation lead. */
+header { padding-top: 18px; padding-bottom: 18px; border-bottom: 0; }
+.site-nav { gap: 16px; }
+.status { display: none; }
+main { max-width: 1080px; }
+.hero { min-height: 590px; grid-template-columns: 1fr .82fr; gap: 54px; padding: 52px 0 70px; }
+.hero-copy { max-width: 560px; }
+h1 { font-size: clamp(50px, 6vw, 76px); }
+.welcome-message { max-width: 520px; color: #68717d; }
+.portrait-wrap { height: 540px; border-radius: 22px; background: #f0f2f5; }
+.portrait-caption { right: 12px; bottom: 12px; padding: 9px 11px; }
+.marquee-section { padding: 8px 0; background: transparent; border-color: rgba(29,35,48,.07); }
+.marquee-track { gap: 12px; color: #778292; font-size: 8px; letter-spacing: .18em; animation: none; }
+.marquee-track b { color: var(--gold); }
+.ask-section { gap: 54px; padding: 78px 0; border-top: 0; }
+.section-heading { padding-top: 12px; }
+.suggestions { margin-top: 18px; }
+.suggestions button { color: var(--blue); border-color: rgba(29,35,48,.12); }
+.chat-shell { min-height: 620px; border-radius: 14px; box-shadow: 0 8px 26px rgba(29,35,48,.045); }
+.messages { padding: 20px; }
+.avatar { width: 28px; height: 28px; font-size: 9px; }
+.bubble { max-width: 90%; padding: 12px 14px; font-size: 12px; }
+.resource-links { margin-top: 13px; padding-top: 11px; }
+.resource-link-grid { gap: 5px; }
+.resource-link { padding: 8px; }
+.resource-link small { display: none; }
+.resource-link em { margin-top: 4px; }
+.seekers-section { grid-template-columns: 1fr; padding: 58px 0; border: 0; border-radius: 0; background: transparent; }
+.seekers-visual { display: none; }
+.seekers-copy { max-width: 560px; }
+.seekers-actions { margin-top: 18px; }
+.resources-section { padding: 76px 0 10px; }
+.resources-section .section-heading { max-width: 560px; }
+.resource-library-grid { grid-template-columns: repeat(3, 1fr); }
+.library-card, .connect-card { min-height: 190px; padding: 18px; border-color: rgba(29,35,48,.1); border-radius: 10px; }
+.library-card h3, .connect-card h3 { margin: 12px 0 7px; font-size: 19px; }
+.library-card p:not(.eyebrow), .connect-card p { font-size: 11px; line-height: 1.6; }
+.connect-section { padding: 76px 0 18px; }
+.connect-intro { margin-bottom: 25px; }
+.connect-grid { grid-template-columns: repeat(4, 1fr); }
+.share-card { grid-column: span 2; }
+.card-icon { width: 28px; height: 28px; font-size: 14px; }
+footer { padding-top: 24px; }
+
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; }
+  .portrait-wrap { height: 500px; max-width: 580px; }
+  .connect-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 680px) {
+  header { padding: 16px 18px; }
+  .site-nav a:first-child { display: none; }
+  main { padding: 0 18px; }
+  .hero { gap: 28px; padding: 30px 0 48px; }
+  h1 { font-size: 52px; }
+  .portrait-wrap { height: 380px; border-radius: 18px; }
+  .ask-section { padding: 60px 0; }
+  .marquee-track { font-size: 7px; }
+  .resource-library-grid, .connect-grid { grid-template-columns: 1fr; }
+  .share-card { grid-column: auto; }
+  .library-card, .connect-card { min-height: 175px; }
+}
