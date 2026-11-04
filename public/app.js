@@ -7,9 +7,23 @@ const recordStatus = document.querySelector("#record-status");
 const messages = document.querySelector("#messages");
 const shareSite = document.querySelector("#share-site");
 const shareStatus = document.querySelector("#share-status");
+const authButton = document.querySelector("#auth-button");
+const authPanel = document.querySelector("#auth-panel");
+const authClose = document.querySelector("#auth-close");
+const authForm = document.querySelector("#auth-form");
+const authEmail = document.querySelector("#auth-email");
+const authStatus = document.querySelector("#auth-status");
+const historyButton = document.querySelector("#history-button");
+const historyPanel = document.querySelector("#history-panel");
+const historyClose = document.querySelector("#history-close");
+const historyStatus = document.querySelector("#history-status");
+const conversationList = document.querySelector("#conversation-list");
 const rotatingPhrase = document.querySelector("#rotating-phrase");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const history = [];
+let supabaseClient;
+let currentSession;
+let currentConversationId = "";
 let mediaRecorder;
 let mediaStream;
 let audioChunks = [];
@@ -61,8 +75,80 @@ function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
 }
 
+function authHeaders() {
+  return currentSession?.access_token
+    ? { Authorization: `Bearer ${currentSession.access_token}` }
+    : {};
+}
+
+function setPanel(panel, open) {
+  panel.hidden = !open;
+}
+
+function updateAuthUI() {
+  if (!supabaseClient) return;
+  authButton.hidden = false;
+  historyButton.hidden = !currentSession;
+  authButton.textContent = currentSession ? "Sign out" : "Sign in";
+}
+
+async function loadConversations() {
+  if (!currentSession) return;
+  historyStatus.textContent = "Loading your conversations…";
+  try {
+    const response = await fetch("/api/conversations", { headers: authHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Conversations could not be loaded.");
+    conversationList.innerHTML = data.conversations.length
+      ? data.conversations.map((conversation) => `<button type="button" class="conversation-item" data-conversation-id="${escapeHtml(conversation.id)}"><strong>${escapeHtml(conversation.title)}</strong><small>${new Date(conversation.updated_at).toLocaleString()}</small></button>`).join("")
+      : "<p class=\"history-empty\">Your saved conversations will appear here.</p>";
+    historyStatus.textContent = "";
+  } catch (error) {
+    historyStatus.textContent = error.message;
+  }
+}
+
+async function loadConversation(conversationId) {
+  try {
+    const response = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}`, { headers: authHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Conversation could not be loaded.");
+    messages.innerHTML = "";
+    history.length = 0;
+    currentConversationId = conversationId;
+    data.messages.forEach((message) => {
+      addMessage(message.role, message.content);
+      history.push({ role: message.role, text: message.content });
+    });
+    setPanel(historyPanel, false);
+    document.querySelector("#ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    historyStatus.textContent = error.message;
+  }
+}
+
+async function initAuth() {
+  try {
+    const response = await fetch("/auth/config");
+    const config = await response.json();
+    if (!config.enabled || !window.supabase?.createClient) return;
+    supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+    const sessionState = await supabaseClient.auth.getSession();
+    currentSession = sessionState.data.session;
+    updateAuthUI();
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentSession = session;
+      updateAuthUI();
+      if (session) loadConversations();
+    });
+  } catch (error) {
+    console.error("Authentication setup failed", error);
+  }
+}
+
 initMotion();
 initRotatingPhrase();
+initAuth();
 
 function formatAnswer(value) {
   return escapeHtml(value)
@@ -189,14 +275,16 @@ async function ask(question) {
   try {
     const response = await fetch("/ask", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history: history.slice(-8), pageUrl: window.location.href })
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ question, history: history.slice(-8), pageUrl: window.location.href, conversationId: currentConversationId })
     });
     const data = await response.json();
     document.querySelector("#typing")?.remove();
     const answer = data.answer || data.error || "I could not form an answer. Please try again.";
     addMessage("assistant", answer, data.sources || [], data.logId || "", data.resources || []);
     history.push({ role: "assistant", text: answer });
+    currentConversationId = data.conversationId || currentConversationId;
+    if (currentSession) loadConversations();
   } catch {
     document.querySelector("#typing")?.remove();
     addMessage("assistant", "The answer service could not be reached. Please try again shortly.");
@@ -265,4 +353,46 @@ shareSite.addEventListener("click", async () => {
       shareStatus.textContent = "The link could not be shared. Please copy it from your browser.";
     }
   }
+});
+
+authButton.addEventListener("click", async () => {
+  if (currentSession) {
+    await supabaseClient.auth.signOut();
+    currentSession = null;
+    currentConversationId = "";
+    updateAuthUI();
+    return;
+  }
+  authStatus.textContent = "";
+  setPanel(authPanel, true);
+  authEmail.focus();
+});
+
+authClose.addEventListener("click", () => setPanel(authPanel, false));
+historyClose.addEventListener("click", () => setPanel(historyPanel, false));
+historyButton.addEventListener("click", () => {
+  setPanel(historyPanel, true);
+  loadConversations();
+});
+
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!supabaseClient) return;
+  const email = authEmail.value.trim();
+  authStatus.textContent = "Sending your secure sign-in link…";
+  try {
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin }
+    });
+    if (error) throw error;
+    authStatus.textContent = "Check your email for the sign-in link. You can close this window after it arrives.";
+  } catch (error) {
+    authStatus.textContent = error.message || "The sign-in link could not be sent.";
+  }
+});
+
+conversationList.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-conversation-id]");
+  if (item) loadConversation(item.dataset.conversationId);
 });

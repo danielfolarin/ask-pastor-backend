@@ -37,6 +37,9 @@ admin dashboard.
 - Knowledge uploads: `/admin/knowledge`
 - Set `DATABASE_URL` to a Supabase or Postgres connection string for persistent
   logs that survive deploys and restarts.
+- Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` to enable optional passwordless
+  email login and saved conversations. The anon key is public by design; never
+  place a Supabase service-role key in frontend code.
 - If `DATABASE_URL` is not set, logs fall back to `data/question-logs.jsonl`.
   That local fallback is ignored by Git and never served from the public
   frontend, but it is not persistent on Render Free.
@@ -55,6 +58,31 @@ The protected admin knowledge panel is available at:
 ```text
 /admin/knowledge
 ```
+
+## Optional Saved Conversations
+
+The public chat remains available to guests. To enable passwordless email
+login and private conversation history, add these Render environment variables:
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-public-anon-key
+```
+
+Use the Supabase project's public `anon` key only. Never use the service-role
+key in the browser or in `SUPABASE_ANON_KEY`.
+
+In Supabase, open **Authentication → URL Configuration** and add the deployed
+site URL to the allowed redirect URLs:
+
+```text
+https://askpastordaniel.greathaven.org
+```
+
+The app creates `chat_sessions` and `chat_messages` automatically in the
+configured Postgres database. Signed-in users can choose **My conversations**
+to reopen a thread; guests can continue using the chat without creating an
+account.
 
 Admins can upload Markdown, TXT, PDF, and DOCX documents. Markdown and TXT are
 indexed directly. PDF and DOCX files are accepted and indexed when the server

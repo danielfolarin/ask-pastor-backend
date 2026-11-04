@@ -36,6 +36,8 @@ const dbPool = databaseUrl
       ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false }
     })
   : null;
+const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
 let dbReady;
 let lastDatabaseError = "";
 let lastLogStorage = dbPool ? "Database configured; waiting for first log check." : "Temporary local file storage";
@@ -501,7 +503,28 @@ async function ensureDb() {
       );
       CREATE INDEX IF NOT EXISTS question_logs_timestamp_idx ON question_logs (timestamp DESC);
       CREATE INDEX IF NOT EXISTS question_logs_feedback_idx ON question_logs (feedback_rating);
+      ALTER TABLE question_logs ADD COLUMN IF NOT EXISTS user_id uuid;
+      CREATE INDEX IF NOT EXISTS question_logs_user_id_idx ON question_logs (user_id);
       ALTER TABLE question_logs ENABLE ROW LEVEL SECURITY;
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+        id uuid PRIMARY KEY,
+        user_id uuid NOT NULL,
+        title text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS chat_sessions_user_updated_idx ON chat_sessions (user_id, updated_at DESC);
+      ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id uuid PRIMARY KEY,
+        session_id uuid NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        user_id uuid NOT NULL,
+        role text NOT NULL CHECK (role IN ('user', 'assistant')),
+        content text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS chat_messages_session_created_idx ON chat_messages (session_id, created_at ASC);
+      ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
       CREATE TABLE IF NOT EXISTS knowledge_documents (
         id uuid PRIMARY KEY,
         timestamp timestamptz NOT NULL DEFAULT now(),
@@ -534,6 +557,60 @@ async function databaseAvailable() {
   }
 }
 
+async function authenticatedUser(req) {
+  const header = req.get("authorization") || "";
+  const [scheme, token] = header.split(" ");
+  if (scheme !== "Bearer" || !token || !supabaseUrl || !supabaseAnonKey) return null;
+  try {
+    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: supabaseAnonKey, Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) return null;
+    const user = await response.json();
+    return user?.id ? user : null;
+  } catch (error) {
+    console.error("Supabase user verification failed", error);
+    return null;
+  }
+}
+
+async function requireUser(req, res, next) {
+  const user = await authenticatedUser(req);
+  if (!user) return res.status(401).json({ error: "Please sign in to view saved conversations." });
+  req.authUser = user;
+  next();
+}
+
+async function createOrGetConversation(userId, requestedId, question) {
+  if (!(await databaseAvailable())) return null;
+  if (typeof requestedId === "string" && requestedId) {
+    const existing = await dbPool.query(
+      "SELECT id FROM chat_sessions WHERE id = $1 AND user_id = $2",
+      [requestedId, userId]
+    );
+    if (existing.rowCount) return existing.rows[0].id;
+  }
+  const id = crypto.randomUUID();
+  await dbPool.query(
+    "INSERT INTO chat_sessions (id, user_id, title) VALUES ($1, $2, $3)",
+    [id, userId, question.slice(0, 90)]
+  );
+  return id;
+}
+
+async function saveConversationMessage(sessionId, userId, role, content) {
+  if (!sessionId || !userId || !(await databaseAvailable())) return;
+  try {
+    await dbPool.query(
+      "INSERT INTO chat_messages (id, session_id, user_id, role, content) VALUES ($1, $2, $3, $4, $5)",
+      [crypto.randomUUID(), sessionId, userId, role, content]
+    );
+    await dbPool.query("UPDATE chat_sessions SET updated_at = now() WHERE id = $1 AND user_id = $2", [sessionId, userId]);
+  } catch (error) {
+    console.error("Could not save conversation message", error);
+  }
+}
+
 function dbRowToLog(row) {
   return {
     id: row.id,
@@ -550,7 +627,7 @@ function dbRowToLog(row) {
   };
 }
 
-async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
+async function saveQuestionLog(req, { question, answer, feedbackRating = "", userId = null }) {
   const userAgent = req.get("user-agent") || "";
   const location = requestLocation(req);
   const record = {
@@ -570,8 +647,8 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
     try {
       await dbPool.query(
         `INSERT INTO question_logs
-          (id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          (id, timestamp, question, answer, page_url, country, city, ip, user_agent, device, feedback_rating, user_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
           record.id,
           record.timestamp,
@@ -583,7 +660,8 @@ async function saveQuestionLog(req, { question, answer, feedbackRating = "" }) {
           record.ip,
           record.userAgent,
           record.device,
-          record.feedbackRating
+          record.feedbackRating,
+          userId
         ]
       );
       lastLogStorage = "Supabase/Postgres database";
@@ -835,6 +913,50 @@ function knowledgeAdminPage(records, message = "") {
 </html>`;
 }
 
+app.get("/auth/config", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({
+    enabled: Boolean(supabaseUrl && supabaseAnonKey),
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey
+  });
+});
+
+app.get("/api/conversations", requireUser, async (req, res) => {
+  try {
+    if (!(await databaseAvailable())) return res.status(503).json({ error: "Conversation storage is not available." });
+    const result = await dbPool.query(
+      `SELECT id, title, created_at, updated_at
+       FROM chat_sessions WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 50`,
+      [req.authUser.id]
+    );
+    res.json({ conversations: result.rows });
+  } catch (error) {
+    console.error("Conversation list failed", error);
+    res.status(500).json({ error: "Saved conversations could not be loaded." });
+  }
+});
+
+app.get("/api/conversations/:id", requireUser, async (req, res) => {
+  try {
+    if (!(await databaseAvailable())) return res.status(503).json({ error: "Conversation storage is not available." });
+    const session = await dbPool.query(
+      "SELECT id, title, created_at, updated_at FROM chat_sessions WHERE id = $1 AND user_id = $2",
+      [req.params.id, req.authUser.id]
+    );
+    if (!session.rowCount) return res.status(404).json({ error: "Conversation not found." });
+    const messages = await dbPool.query(
+      `SELECT role, content, created_at FROM chat_messages
+       WHERE session_id = $1 AND user_id = $2 ORDER BY created_at ASC`,
+      [req.params.id, req.authUser.id]
+    );
+    res.json({ conversation: session.rows[0], messages: messages.rows });
+  } catch (error) {
+    console.error("Conversation load failed", error);
+    res.status(500).json({ error: "Conversation could not be loaded." });
+  }
+});
+
 app.get("/admin", requireAdmin, async (req, res) => {
   try {
     const query = typeof req.query.q === "string" ? req.query.q : "";
@@ -948,16 +1070,29 @@ app.post("/ask", async (req, res) => {
   if (!question) return res.status(400).json({ error: "Please enter a question." });
   if (question.length > 3000) return res.status(400).json({ error: "Please shorten your question." });
 
+  const authUser = await authenticatedUser(req);
+  let conversationId = null;
+  if (authUser) {
+    try {
+      conversationId = await createOrGetConversation(authUser.id, req.body?.conversationId, question);
+      await saveConversationMessage(conversationId, authUser.id, "user", question);
+    } catch (error) {
+      console.error("Could not save signed-in conversation question", error);
+    }
+  }
+
   const urgentAnswer = safetyResponse(question);
   if (urgentAnswer) {
-    const logId = await saveQuestionLog(req, { question, answer: urgentAnswer });
-    return res.json({ answer: urgentAnswer, sources: [], resources: resourceRecommendations(question), logId });
+    const logId = await saveQuestionLog(req, { question, answer: urgentAnswer, userId: authUser?.id || null });
+    await saveConversationMessage(conversationId, authUser?.id, "assistant", urgentAnswer);
+    return res.json({ answer: urgentAnswer, sources: [], resources: resourceRecommendations(question), conversationId, logId });
   }
 
   if (!process.env.MODEL_API_URL || !process.env.MODEL_API_KEY || !process.env.MODEL_NAME) {
     const error = "The AI model has not been configured yet.";
-    const logId = await saveQuestionLog(req, { question, answer: error });
-    return res.status(503).json({ error, logId });
+    const logId = await saveQuestionLog(req, { question, answer: error, userId: authUser?.id || null });
+    await saveConversationMessage(conversationId, authUser?.id, "assistant", error);
+    return res.status(503).json({ error, conversationId, logId });
   }
 
   const uploadedKnowledge = await readUploadedKnowledgeChunks();
@@ -1027,27 +1162,32 @@ Application." Do not merely retell the passage.`;
       console.error("Model provider error", response.status, data?.error?.message || data);
       if (response.status === 429) {
         const error = "Ask Pastor Daniel AI needs active model credits before it can answer ordinary questions.";
-        const logId = await saveQuestionLog(req, { question, answer: error });
+        const logId = await saveQuestionLog(req, { question, answer: error, userId: authUser?.id || null });
+        await saveConversationMessage(conversationId, authUser?.id, "assistant", error);
         return res.status(503).json({
           error,
           resources: resourceRecommendations(question),
+          conversationId,
           logId
         });
       }
       const error = "The answer service is temporarily unavailable.";
-      const logId = await saveQuestionLog(req, { question, answer: error });
-      return res.status(502).json({ error, resources: resourceRecommendations(question), logId });
+      const logId = await saveQuestionLog(req, { question, answer: error, userId: authUser?.id || null });
+      await saveConversationMessage(conversationId, authUser?.id, "assistant", error);
+      return res.status(502).json({ error, resources: resourceRecommendations(question), conversationId, logId });
     }
     const answer = data?.choices?.[0]?.message?.content?.trim();
     if (!answer) return res.status(502).json({ error: "The answer service returned an empty response." });
-    const logId = await saveQuestionLog(req, { question, answer });
-    res.json({ answer, sources: sourceList(retrieved), resources: resourceRecommendations(question), logId });
+    const logId = await saveQuestionLog(req, { question, answer, userId: authUser?.id || null });
+    await saveConversationMessage(conversationId, authUser?.id, "assistant", answer);
+    res.json({ answer, sources: sourceList(retrieved), resources: resourceRecommendations(question), conversationId, logId });
   } catch (error) {
     console.error(error);
     const message = "There was an error generating a response. Please try again.";
     try {
-      const logId = await saveQuestionLog(req, { question, answer: message });
-      res.status(502).json({ error: message, logId });
+      const logId = await saveQuestionLog(req, { question, answer: message, userId: authUser?.id || null });
+      await saveConversationMessage(conversationId, authUser?.id, "assistant", message);
+      res.status(502).json({ error: message, conversationId, logId });
     } catch {
       res.status(502).json({ error: message });
     }
