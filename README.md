@@ -70,15 +70,18 @@ Answer priority is:
 4. Existing books, sermons, articles, and reference works.
 5. General reasoning.
 
-## Keep the App Always Available
+## Keep Render Free Warm
 
-The Render blueprint uses the paid `starter` service plan so the app remains
-running and visitors do not see the Render booting page after inactivity.
-Render Free web services sleep after idle time and cannot guarantee an
-always-on experience. Applying the `starter` plan may incur Render charges.
+The Render blueprint intentionally uses the Free plan. Render Free services
+can sleep after inactivity, so use one external uptime monitor to request the
+lightweight health endpoint every 5 minutes. This is the strongest free
+approach and normally keeps the service warm without adding a background
+self-ping process to the app.
 
-For a Free service, an external uptime monitor can reduce (but cannot
-guarantee removal of) cold-start waiting by requesting:
+This reduces cold starts but cannot guarantee zero booting after Render
+maintenance, service restarts, outages, or a missed monitor request.
+
+Use this URL:
 
 ```text
 https://askpastordaniel.greathaven.org/health
@@ -97,14 +100,14 @@ It does not query the database, call OpenAI, read secrets, or expose
 environment variables. It is registered before the heavier middleware so it
 stays as lightweight as possible.
 
-### UptimeRobot
+### UptimeRobot (recommended)
 
 1. Create or sign in to an UptimeRobot account.
 2. Choose **New Monitor**.
 3. Select **HTTP(s)** as the monitor type.
 4. Enter a friendly name such as `Ask Pastor Daniel AI Health`.
 5. Set the URL to `https://askpastordaniel.greathaven.org/health`.
-6. Set the monitoring interval to **10 minutes**.
+6. Set the monitoring interval to **5 minutes**.
 7. Save the monitor.
 
 ### Better Stack
@@ -113,7 +116,7 @@ stays as lightweight as possible.
 2. Go to **Uptime** and choose **Create monitor**.
 3. Select an **HTTP** monitor.
 4. Set the URL to `https://askpastordaniel.greathaven.org/health`.
-5. Set the check frequency to **10 minutes**.
+5. Set the check frequency to **5 minutes**.
 6. Save the monitor.
 
 ### cron-job.org
@@ -122,5 +125,5 @@ stays as lightweight as possible.
 2. Choose **Create cronjob**.
 3. Set the URL to `https://askpastordaniel.greathaven.org/health`.
 4. Set the request method to **GET**.
-5. Set the schedule to run every **10 minutes**.
+5. Set the schedule to run every **5 minutes**.
 6. Save and enable the cronjob.
