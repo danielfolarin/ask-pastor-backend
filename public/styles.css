@@ -614,3 +614,75 @@ h1 em, h2 em { color: var(--green); text-shadow: 0 8px 28px rgba(23,100,71,.08);
     transform: none;
   }
 }
+
+/* Minimal, ultramodern finish. */
+body {
+  background: #fbfaf8;
+}
+body::before, .glow, .hero::before { display: none; }
+header {
+  max-width: 1180px;
+  margin-top: 0;
+  padding: 22px 28px;
+  border-bottom: 1px solid rgba(29,35,48,.08);
+}
+.brand { gap: 10px; }
+.brand-mark { width: 36px; height: 36px; border-radius: 10px; font-family: "DM Sans", sans-serif; font-size: 11px; font-weight: 800; box-shadow: none; }
+.brand strong { font-size: 13px; }
+.brand small { font-size: 9px; letter-spacing: .14em; }
+.site-nav { gap: 18px; }
+.site-nav a { font-size: 10px; letter-spacing: .12em; }
+.status { padding: 0; border: 0; background: transparent; box-shadow: none; font-size: 10px; }
+main { max-width: 1180px; margin-bottom: 54px; }
+.hero { min-height: 630px; gap: 72px; padding: 64px 0 88px; }
+.hero-copy { max-width: 590px; }
+.eyebrow { font-size: 9px; letter-spacing: .2em; }
+h1 { margin-top: 20px; font-size: clamp(54px, 6.3vw, 84px); letter-spacing: -.055em; }
+.subheadline { margin: 18px 0 28px; font-size: 11px; letter-spacing: .18em; }
+.rotating-line { margin-bottom: 24px; font-size: 13px; }
+.welcome-message { font-size: 13px; line-height: 1.8; }
+.welcome-message p { margin-bottom: 9px; }
+.hero-actions { margin-top: 25px; }
+.button { border-radius: 9px; padding: 12px 15px; font-size: 11px; }
+.button.primary { background: var(--green); box-shadow: none; }
+.button.primary:hover { background: var(--green-dark); box-shadow: none; }
+.portrait-wrap { height: 590px; border: 1px solid rgba(41,75,115,.12); border-radius: 28px; background: #eef2f7; box-shadow: none; }
+.portrait-halo { display: none; }
+.portrait { filter: drop-shadow(0 16px 20px rgba(29,35,48,.12)); }
+.portrait-caption { right: 16px; bottom: 16px; border-radius: 9px; box-shadow: none; }
+.marquee-section { padding: 11px 0; border-color: rgba(29,35,48,.09); background: #f5f1f2; backdrop-filter: none; }
+.marquee-track { gap: 15px; font-size: 10px; letter-spacing: .2em; animation-duration: 55s; }
+.ask-section { gap: 70px; padding: 105px 0; border-top-color: rgba(29,35,48,.1); }
+.section-heading { padding-top: 28px; }
+h2 { font-size: clamp(35px, 4.2vw, 56px); }
+.section-heading > p:not(.eyebrow), .connect-intro > p:not(.eyebrow) { font-size: 13px; line-height: 1.8; }
+.suggestions { gap: 6px; margin-top: 24px; }
+.suggestions button { padding: 8px 10px; border-color: rgba(41,75,115,.16); background: transparent; font-size: 10px; }
+.chat-shell { min-height: 650px; border: 1px solid rgba(29,35,48,.12); border-radius: 18px; box-shadow: 0 14px 40px rgba(29,35,48,.06); backdrop-filter: none; }
+.messages { padding: 24px; }
+.message { margin-bottom: 18px; }
+.bubble { padding: 14px 16px; border-color: rgba(29,35,48,.08); box-shadow: none; font-size: 13px; }
+.message.user .bubble { background: var(--blue); box-shadow: none; }
+.resource-link { border-radius: 8px; background: #fbfaf8; transition: border-color .2s ease, background .2s ease; }
+.resource-link:hover { transform: none; background: #fff; }
+form { margin: 0 16px; padding: 8px; border-radius: 12px; box-shadow: none; }
+#send { background: var(--green); box-shadow: none; border-radius: 8px; }
+#record { border-radius: 8px; }
+.seekers-section { gap: 60px; padding: 72px 40px; border-radius: 18px; background: #f3f6fa; box-shadow: none; }
+.seekers-section::after { display: none; }
+.seekers-copy > p:not(.eyebrow):not(.seekers-subheading) { font-size: 13px; line-height: 1.8; }
+.seekers-actions { margin-top: 25px; }
+.article-card { border-radius: 14px; box-shadow: none; background: rgba(255,255,255,.9); }
+.topic-orbit { border-radius: 18px; background: transparent; }
+.resources-section { padding: 105px 0 30px; background: transparent; }
+.resource-library-grid, .connect-grid { gap: 12px; }
+.library-card, .connect-card { min-height: 215px; padding: 21px; border-radius: 14px; box-shadow: none; background: #fff; }
+.library-card:hover, .connect-card:hover { transform: none; box-shadow: none; }
+.library-card h3, .connect-card h3 { font-size: 21px; }
+.connect-section { padding: 100px 0 30px; }
+.connect-intro { margin-bottom: 32px; }
+footer { padding-bottom: 24px; font-size: 9px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
